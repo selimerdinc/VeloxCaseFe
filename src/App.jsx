@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import {
-  FolderPlus, Check, ArrowRight, Settings, Clock,
+  Zap, FolderPlus, Check, ArrowRight, Settings, Clock,
   Image as ImageIcon, Loader2,
   PlusCircle, LogOut, Lock, Save, ArrowLeft, List, XCircle, UserPlus,
   BarChart3, Calendar, Eye, EyeOff
@@ -140,7 +140,7 @@ function App() {
   const handleSync = async () => {
     if (!jiraInput || !selectedFolder) return toast.error("Lütfen tüm alanları doldurun.");
     setLoading(true); setSyncResults([]);
-    const tId = toast.loading('İşleniyor...');
+    const tId = toast.loading('Kayıtlar işleniyor...');
     try {
       const res = await axios.post(`${API_BASE_URL}/sync`, { jira_input: jiraInput, folder_id: selectedFolder, project_id: repoId });
       setSyncResults(res.data.results || []);
@@ -183,7 +183,6 @@ function App() {
       <Toaster position="top-center"/>
       <div className="login-card">
         <div className="login-header">
-           {/* LOGO GÜNCELLEMESİ */}
            <img src="/logo.png" alt="VeloxCase" style={{height:60, marginBottom:16}} className="mx-auto"/>
            <h1>VeloxCase</h1>
            <p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Yönetici Girişi'}</p>
@@ -191,7 +190,7 @@ function App() {
         <form onSubmit={handleAuth}>
           <div className="form-group">
             <label className="form-label">Kullanıcı Adı</label>
-            <input className="form-input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="admin"/>
+            <input className="form-input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="Kullanıcı Adı"/>
           </div>
 
           <div className="form-group">
@@ -245,7 +244,6 @@ function App() {
 
         <div className="header-card">
           <div className="header-brand">
-             {/* LOGO GÜNCELLEMESİ */}
             <img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/>
             <div className="brand-text"><h1>VeloxCase</h1><p>Saniyeler İçinde Sync</p></div>
           </div>
@@ -297,7 +295,7 @@ function App() {
                 <div className="preview-loader"><Loader2 className="spinner text-primary"/> Task bilgisi alınıyor...</div>
               ) : previewTask && (
                 <div className="preview-card">
-                  {/* İkon yoksa varsayılan göster */}
+                  {/* Varsayılan ikon */}
                   {previewTask.icon && <img src={previewTask.icon} alt="Type" style={{width:20, height:20}} />}
                   <div>
                     <strong>{previewTask.key}:</strong> {previewTask.summary}
