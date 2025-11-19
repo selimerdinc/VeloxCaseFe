@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import './App.css';
 
-const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
+const API_BASE_URL = 'https://VeloxCase-api.onrender.com/api';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('qc_token'));
@@ -44,7 +44,7 @@ function App() {
   const [stats, setStats] = useState({ total_cases: 0, total_images: 0, today_syncs: 0 });
 
   useEffect(() => {
-    document.title = "QuickCase | Saniyeler İçinde Sync";
+    document.title = "VeloxCase | Saniyeler İçinde Sync";
     if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }, [token]);
 
@@ -164,7 +164,7 @@ function App() {
     <div className="app-container login-container">
       <Toaster position="top-center"/>
       <div className="login-card">
-        <div className="login-header"><Zap size={40} className="text-primary mx-auto mb-4"/><h1>QuickCase</h1><p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Giriş'}</p></div>
+        <div className="login-header"><Zap size={40} className="text-primary mx-auto mb-4"/><h1>VeloxCase</h1><p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Giriş'}</p></div>
         <form onSubmit={handleAuth}>
           <div className="form-group"><label>Kullanıcı Adı</label><input className="form-input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="Kullanıcı Adı"/></div>
           <div className="form-group"><label>Şifre</label><input type="password" className="form-input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••••••"/></div>
@@ -183,7 +183,7 @@ function App() {
         <div className="header-card">
           <div className="header-brand">
             <div className="logo-box"><Zap size={28}/></div>
-            <div className="brand-text"><h1>QuickCase</h1><p>Test Case Aktarım Platformu</p></div>
+            <div className="brand-text"><h1>VeloxCase</h1><p>Test Case Aktarım Platformu</p></div>
           </div>
           <div style={{display:'flex', gap:'10px'}}>
             {view === 'dashboard' && (
