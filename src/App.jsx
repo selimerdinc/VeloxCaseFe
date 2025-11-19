@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import './App.css';
 
-const API_BASE_URL = 'https://VeloxCase-api.onrender.com/api';
+const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('qc_token'));
