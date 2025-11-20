@@ -3,17 +3,20 @@
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Eye, EyeOff, Loader2, UserPlus, Lock, Sun, Moon } from 'lucide-react';
-import { useAuth } from '../useAuth';
+// DİKKAT: useAuth importunu sildik, çünkü prop olarak alacağız.
 
-// YENİ: theme ve handleThemeToggle prop olarak alındı
-function LoginView({ theme, handleThemeToggle }) {
-    // Tüm Auth mantığını Hook'tan çekiyoruz.
+function LoginView(props) {
+    // Props'tan gelen verileri parçalıyoruz (Destructuring)
+    // Artık kendi içinde useAuth() çağırmıyor, App.jsx'in gönderdiklerini kullanıyor.
     const {
+        theme,
+        handleThemeToggle,
+        // Auth Hook'undan gelenler:
         isRegistering, username, password, showPassword,
         authLoading, errors, strengthScore,
         handleAuth, handleForgotPassword,
         setUsername, setPassword, setIsRegistering, setShowPassword
-    } = useAuth();
+    } = props;
 
     return (
         <div className="app-container login-container">
@@ -25,7 +28,6 @@ function LoginView({ theme, handleThemeToggle }) {
                  onClick={handleThemeToggle}
                  className="btn btn-text"
                  title="Temayı Değiştir"
-                 // İkon rengini değişkenlerden al
                  style={{color: 'var(--text-main)'}}
              >
                 {theme === 'dark' ? <Sun size={24}/> : <Moon size={24}/>}
