@@ -11,6 +11,7 @@ const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
  */
 export const useAuth = () => {
     // --- AUTH STATE'leri ---
+    // Başlangıçta Local Storage'daki token'ı kontrol et
     const [token, setToken] = useState(localStorage.getItem('qc_token'));
     const [isRegistering, setIsRegistering] = useState(false);
     const [username, setUsername] = useState('');
@@ -41,7 +42,7 @@ export const useAuth = () => {
     }
     const strengthScore = getStrength(password);
 
-    // --- İŞLEV: Oturum Açma / Kayıt Olma (GELİŞTİRİLDİ) ---
+    // --- İŞLEV: Oturum Açma / Kayıt Olma ---
     const handleAuth = useCallback(async (e) => {
         e.preventDefault();
 
@@ -59,7 +60,7 @@ export const useAuth = () => {
             return;
         }
 
-        // 2. KAYIT OLMAYA ÖZEL EK VALIDASYON (Profesyonel Ekleme)
+        // 2. KAYIT OLMAYA ÖZEL EK VALIDASYON
         if (isRegistering && password.length < 8) {
             setErrors(e => ({...e, password: true}));
             toast.error("Parola güvenliği için en az 8 karakter gereklidir.", {
@@ -74,19 +75,27 @@ export const useAuth = () => {
         try {
             const res = await axios.post(`${API_BASE_URL}${endpoint}`, { username, password });
 
+            // API'den dönen token kontrolü
+            const receivedToken = res.data.access_token;
+            if (!receivedToken) {
+                throw new Error("API'den geçerli token alınamadı.");
+            }
+
             if (isRegistering) {
-                // Profesyonel Success Mesajı
+                // Kayıt başarılı: Giriş sayfasına yönlendir
                 toast.success(`Tebrikler! Hesabınız oluşturuldu. Giriş sayfasına yönlendiriliyorsunuz.`, { icon: '✅', duration: 5000 });
                 setIsRegistering(false);
                 setPassword('');
             } else {
-                localStorage.setItem('qc_token', res.data.access_token);
-                setToken(res.data.access_token); // <<< Başarılı Giriş Burasıdır.
-                // Profesyonel Success Mesajı
+                // Giriş başarılı: Token'ı kaydet ve state'i güncelle
+                localStorage.setItem('qc_token', receivedToken);
+                setToken(receivedToken); // <<< Burası App.jsx'in yeniden render olmasını sağlar.
                 toast.success(`Giriş Başarılı! Sisteme hoş geldiniz, ${username}.`, { icon: '👋' });
+
+                // NOT: Eğer hala geçiş yapmıyorsa, tarayıcınızın önbelleğini temizleyip deneyin.
             }
         } catch (err) {
-            // Profesyonel Hata Yakalama ve Mesajı
+            // Hata Yakalama
             const apiMsg = err.response?.data?.msg;
             let displayMsg = "Kimlik doğrulama işlemi başarısız. Lütfen bilgileri kontrol edin.";
 
@@ -105,7 +114,7 @@ export const useAuth = () => {
         }
     }, [username, password, isRegistering]);
 
-    // --- İŞLEV: Oturumu Kapatma ---
+    // ... (handleLogout ve handleForgotPassword aynı kalır) ...
     const handleLogout = useCallback(() => {
         localStorage.removeItem('qc_token');
         setToken(null);
@@ -115,7 +124,6 @@ export const useAuth = () => {
         toast('Oturum güvenli bir şekilde sonlandırıldı.', {icon:'🔒'});
     }, []);
 
-    // --- İŞLEV: Şifremi Unuttum ---
     const handleForgotPassword = useCallback(() => {
         toast((t) => (
             <div style={{textAlign: 'center', padding: '4px'}}>
