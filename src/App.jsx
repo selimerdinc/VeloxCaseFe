@@ -5,30 +5,12 @@ import {
   Zap, FolderPlus, Check, ArrowRight, Settings, Clock,
   Image as ImageIcon, Loader2,
   PlusCircle, LogOut, Lock, Save, ArrowLeft, List, XCircle, UserPlus,
-  BarChart3, Calendar, Eye, EyeOff, Mail
+  BarChart3, Calendar, Eye, EyeOff, Shield
+  // Mail silindi
 } from 'lucide-react';
 import './App.css';
 
 const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
-
-// Özel Toast Bildirim Stili
-const notify = {
-  success: (msg) => toast.success(msg, {
-    style: { border: '1px solid #10b981', padding: '16px', color: '#064e3b', background: '#ecfdf5' },
-    iconTheme: { primary: '#10b981', secondary: '#FFFAEE' },
-  }),
-  error: (msg) => toast.error(msg, {
-    style: { border: '1px solid #ef4444', padding: '16px', color: '#7f1d1d', background: '#fef2f2' },
-    iconTheme: { primary: '#ef4444', secondary: '#FFFAEE' },
-  }),
-  loading: (msg) => toast.loading(msg, {
-    style: { border: '1px solid #3b82f6', padding: '16px', color: '#1e3a8a', background: '#eff6ff' },
-  }),
-  info: (msg) => toast(msg, {
-    icon: 'ℹ️',
-    style: { border: '1px solid #3b82f6', padding: '16px', color: '#1e3a8a', background: '#eff6ff' },
-  })
-};
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('qc_token'));
@@ -41,8 +23,17 @@ function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // VALIDATION STATE
-  const [errors, setErrors] = useState({ username: false, password: false });
+  // PASSWORD STRENGTH
+  const getStrength = (pass) => {
+    if(!pass) return 0;
+    let score = 0;
+    if (pass.length > 7) score += 25;
+    if (/[A-Z]/.test(pass)) score += 25;
+    if (/[0-9]/.test(pass)) score += 25;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 25;
+    return score;
+  }
+  const strengthScore = getStrength(password);
 
   // DASHBOARD STATE
   const [repoId, setRepoId] = useState(1);
@@ -60,31 +51,23 @@ function App() {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   // SETTINGS & DATA
-  const [settingsData, setSettingsData] = useState({});
+  const [settingsTab, setSettingsTab] = useState('api');
+  const [settingsData, setSettingsData] = useState({
+    JIRA_BASE_URL: '', JIRA_EMAIL: '', JIRA_API_TOKEN: '',
+    TESTMO_BASE_URL: '', TESTMO_API_KEY: ''
+  });
+  const [passwordData, setPasswordData] = useState({ old: '', new: '', confirm: '' });
   const [settingsLoading, setSettingsLoading] = useState(false);
+
   const [historyData, setHistoryData] = useState([]);
   const [stats, setStats] = useState({ total_cases: 0, total_images: 0, today_syncs: 0 });
-  const [settingsTab, setSettingsTab] = useState('api');
-  const [passwordData, setPasswordData] = useState({ old: '', new: '', confirm: '' });
 
   useEffect(() => {
-    document.title = "VeloxCase | Kurumsal Entegrasyon";
+    document.title = "VeloxCase | Saniyeler İçinde Sync";
     if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }, [token]);
 
-  // PASSWORD STRENGTH
-  const getStrength = (pass) => {
-    if(!pass) return 0;
-    let score = 0;
-    if (pass.length > 7) score += 25;
-    if (/[A-Z]/.test(pass)) score += 25;
-    if (/[0-9]/.test(pass)) score += 25;
-    if (/[^A-Za-z0-9]/.test(pass)) score += 25;
-    return score;
-  }
-  const strengthScore = getStrength(password);
-
-  // DEBOUNCED PREVIEW
+  // --- DEBOUNCED PREVIEW ---
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (token && jiraInput.length > 5 && !jiraInput.includes(',')) {
@@ -92,9 +75,14 @@ function App() {
         try {
           const res = await axios.post(`${API_BASE_URL}/preview`, { task_key: jiraInput });
           setPreviewTask(res.data);
-        } catch { setPreviewTask(null); }
-        finally { setPreviewLoading(false); }
-      } else { setPreviewTask(null); }
+        } catch {
+          setPreviewTask(null);
+        } finally {
+          setPreviewLoading(false);
+        }
+      } else {
+        setPreviewTask(null);
+      }
     }, 800);
     return () => clearTimeout(delayDebounceFn);
   }, [jiraInput, token]);
@@ -102,65 +90,43 @@ function App() {
   // --- AUTH ---
   const handleAuth = async (e) => {
     e.preventDefault();
-
-    // Validasyon
-    const newErrors = {
-      username: !username.trim(),
-      password: !password.trim()
-    };
-    setErrors(newErrors);
-
-    if (newErrors.username || newErrors.password) {
-      notify.error("Lütfen tüm zorunlu alanları eksiksiz doldurunuz.");
-      return;
-    }
-
+    if (!username || !password) return toast.error("Lütfen alanları doldurun.");
     setAuthLoading(true);
     const endpoint = isRegistering ? '/register' : '/login';
     try {
       const res = await axios.post(`${API_BASE_URL}${endpoint}`, { username, password });
       if (isRegistering) {
-        notify.success("Hesabınız başarıyla oluşturuldu. Giriş yapabilirsiniz.");
+        toast.success("Kayıt Başarılı! Giriş yapabilirsiniz.");
         setIsRegistering(false); setPassword('');
       } else {
         localStorage.setItem('qc_token', res.data.access_token);
         setToken(res.data.access_token);
-        notify.success("Sisteme hoş geldiniz.");
+        toast.success("Giriş Başarılı!");
       }
-    } catch (err) {
-      notify.error(err.response?.data?.msg || "Kimlik doğrulama işlemi başarısız.");
-    }
+    } catch (err) { toast.error(err.response?.data?.msg || "İşlem başarısız."); }
     finally { setAuthLoading(false); }
   };
 
-  // ŞİFREMİ UNUTTUM
+  const handleLogout = () => {
+    localStorage.removeItem('qc_token');
+    setToken(null); setView('dashboard'); setUsername(''); setPassword('');
+    toast('Oturum kapatıldı.');
+  };
+
   const handleForgotPassword = () => {
     toast((t) => (
       <div style={{textAlign: 'center'}}>
-        <strong style={{display:'block', marginBottom:'5px'}}>Geliştirici İletişimi</strong>
-        Lütfen şifre sıfırlama talebiniz için iletişime geçiniz:
+        <b>Geliştirici ile iletişime geçiniz:</b>
         <br />
-        <a href="mailto:selim@selimerdinc.com" style={{color: '#4f46e5', fontWeight: 'bold', textDecoration: 'none', display: 'block', marginTop: '8px'}}>
+        <a href="mailto:selim@selimerdinc.com" style={{color: '#4f46e5', textDecoration: 'underline', display: 'block', marginTop: '5px', fontWeight: 'bold'}}>
           selim@selimerdinc.com
         </a>
       </div>
     ), {
       icon: '📧',
       duration: 6000,
-      style: {
-        background: '#fff',
-        color: '#1e293b',
-        border: '1px solid #cbd5e1',
-        padding: '16px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-      },
+      style: { background: '#fff', color: '#333', border: '1px solid #4f46e5', padding: '16px' },
     });
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('qc_token');
-    setToken(null); setView('dashboard'); setUsername(''); setPassword('');
-    notify.info('Oturum güvenli bir şekilde sonlandırıldı.');
   };
 
   const fetchFolders = useCallback(async () => {
@@ -180,30 +146,37 @@ function App() {
   }, [token, view]);
 
   useEffect(() => {
-    if(token && view === 'dashboard') { fetchFolders(); fetchStats(); }
+    if(token && view === 'dashboard') {
+      fetchFolders();
+      fetchStats();
+    }
   }, [fetchFolders, fetchStats, token, view]);
 
   useEffect(() => {
     if (view === 'history' && token) axios.get(`${API_BASE_URL}/history`).then(res => setHistoryData(res.data));
     if (view === 'settings' && token) axios.get(`${API_BASE_URL}/settings`).then(res => {
-      const { ...cleanData } = res.data; setSettingsData(cleanData);
+      const { ...cleanData } = res.data; // Figma temizliği zaten backendde yapıldı
+      setSettingsData(cleanData);
     });
   }, [view, token]);
 
   const handleSync = async () => {
-    if (!jiraInput || !selectedFolder) return notify.error("Lütfen Jira Anahtarı ve Hedef Klasör alanlarını doldurunuz.");
+    if (!jiraInput || !selectedFolder) return toast.error("Lütfen tüm alanları doldurun.");
     setLoading(true); setSyncResults([]);
-    const tId = notify.loading('Entegrasyon başlatıldı, veriler işleniyor...');
+    const tId = toast.loading('Kayıtlar işleniyor...');
     try {
       const res = await axios.post(`${API_BASE_URL}/sync`, { jira_input: jiraInput, folder_id: selectedFolder, project_id: repoId });
       setSyncResults(res.data.results || []);
-      const success = res.data.results.filter(r => r.status === 'success').length;
-      if (success > 0) {
-        toast.success(`İşlem Başarılı! ${success} kayıt aktarıldı.`, { id: tId });
+
+      const successCount = res.data.results.filter(r => r.status === 'success').length;
+      if (successCount > 0) {
+        toast.success(`İşlem Tamamlandı! (${successCount} Kayıt)`, { id: tId });
         setJiraInput(''); fetchStats();
-        setTimeout(() => setSyncResults([]), 10000);
-      } else { toast.error("İşlem sırasında hata oluştu.", { id: tId }); }
-    } catch (err) { toast.error("Sunucu ile iletişim kurulamadı.", { id: tId }); }
+        setTimeout(() => setSyncResults([]), 5000);
+      } else {
+        toast.error("Başarısız.", { id: tId });
+      }
+    } catch (err) { toast.error("Sunucu hatası.", { id: tId }); }
     finally { setLoading(false); }
   };
 
@@ -214,33 +187,32 @@ function App() {
       await fetchFolders();
       if(res.data?.id) setSelectedFolder(res.data.id);
       setNewFolderName(''); setShowNewFolder(false);
-      notify.success('Klasör başarıyla oluşturuldu.');
-    } catch (err) { notify.error("Klasör oluşturma hatası."); }
+      toast.success('Klasör oluşturuldu');
+    } catch (err) { toast.error(err.message); }
   };
 
   const saveSettings = async () => {
     setSettingsLoading(true);
     try {
       await axios.post(`${API_BASE_URL}/settings`, settingsData);
-      notify.success("Yapılandırma ayarları güncellendi.");
+      toast.success("Ayarlar kaydedildi");
       setTimeout(() => setView('dashboard'), 1000);
-    } catch { notify.error("Ayarlar kaydedilemedi."); }
+    } catch { toast.error("Hata"); }
     finally { setSettingsLoading(false); }
   };
 
   const handleChangePassword = async () => {
-    if (!passwordData.old || !passwordData.new || !passwordData.confirm) return notify.error("Lütfen tüm alanları doldurunuz.");
-    if (passwordData.new !== passwordData.confirm) return notify.error("Yeni şifreler birbiriyle uyuşmuyor.");
+    if (!passwordData.old || !passwordData.new || !passwordData.confirm) return toast.error("Alanları doldurun.");
+    if (passwordData.new !== passwordData.confirm) return toast.error("Yeni şifreler eşleşmiyor.");
     setSettingsLoading(true);
     try {
       await axios.post(`${API_BASE_URL}/change-password`, { old_password: passwordData.old, new_password: passwordData.new });
-      notify.success("Şifreniz başarıyla güncellendi.");
+      toast.success("Şifreniz güncellendi!");
       setPasswordData({ old: '', new: '', confirm: '' });
-    } catch (err) { notify.error(err.response?.data?.msg || "Şifre değiştirilemedi."); }
+    } catch (err) { toast.error(err.response?.data?.msg || "Hata oluştu."); }
     finally { setSettingsLoading(false); }
   };
 
-  // --- RENDER: LOGIN ---
   if (!token) return (
     <div className="app-container login-container">
       <Toaster position="top-center"/>
@@ -248,55 +220,29 @@ function App() {
         <div className="login-header">
            <img src="/logo.png" alt="VeloxCase" style={{height:60, marginBottom:16}} className="mx-auto"/>
            <h1>VeloxCase</h1>
-           <p>{isRegistering ? 'Kurumsal Hesap Oluştur' : 'Yetkili Girişi'}</p>
+           <p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Yönetici Girişi'}</p>
         </div>
-
         <form onSubmit={handleAuth}>
           <div className="form-group">
             <label className="form-label">Kullanıcı Adı</label>
-            <input
-              className={`form-input ${errors.username ? 'input-error' : ''}`}
-              value={username}
-              onChange={e=>{setUsername(e.target.value); setErrors({...errors, username:false})}}
-              placeholder="Erişim kimliğinizi giriniz"
-            />
+            <input className="form-input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="Kullanıcı Adı"/>
           </div>
-
           <div className="form-group">
-            <label className="form-label">Parola</label>
+            <label className="form-label">Şifre</label>
             <div className="input-wrapper">
-              <input
-                type={showPassword ? "text" : "password"}
-                className={`form-input ${errors.password ? 'input-error' : ''}`}
-                value={password}
-                onChange={e=>{setPassword(e.target.value); setErrors({...errors, password:false})}}
-                placeholder="••••••••••••"
-                style={{paddingRight: '40px'}}
-              />
-              <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-              </button>
+              <input type={showPassword ? "text" : "password"} className="form-input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••••••" style={{paddingRight: '40px'}}/>
+              <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
             </div>
-
-            {isRegistering && password.length > 0 && (
-              <div className="strength-meter">
-                <div className="strength-bar" style={{
-                  width: `${strengthScore}%`,
-                  backgroundColor: strengthScore < 50 ? '#ef4444' : strengthScore < 75 ? '#eab308' : '#22c55e'
-                }}></div>
-              </div>
-            )}
+            {isRegistering && password.length > 0 && (<div className="strength-meter"><div className="strength-bar" style={{width: `${strengthScore}%`, backgroundColor: strengthScore < 50 ? '#ef4444' : strengthScore < 75 ? '#eab308' : '#22c55e'}}></div></div>)}
           </div>
-
           <button type="submit" className="btn btn-primary" disabled={!username || !password || authLoading} style={{width:'100%', marginBottom:'1rem'}}>
-            {authLoading ? <Loader2 className="spinner"/> : (isRegistering ? <><UserPlus size={18}/> Kaydı Tamamla</> : <><Lock size={18}/> Güvenli Giriş</>)}
+            {authLoading ? <Loader2 className="spinner"/> : (isRegistering ? <><UserPlus size={18}/> Kayıt Ol</> : <><Lock size={18}/> Giriş Yap</>)}
           </button>
         </form>
-
         <div style={{borderTop:'1px solid #e2e8f0', paddingTop:'1rem', fontSize:'0.9rem', display:'flex', flexDirection:'column', alignItems:'center', gap:'5px'}}>
           <div>
             <span style={{color:'#64748b'}}>{isRegistering ? 'Zaten hesabınız var mı?' : 'Hesabınız yok mu?'}</span>
-            <button onClick={() => { setIsRegistering(!isRegistering); setUsername(''); setPassword(''); setErrors({}); }} className="btn-text" style={{marginLeft:'5px', fontSize:'0.9rem'}}>
+            <button onClick={() => { setIsRegistering(!isRegistering); setUsername(''); setPassword(''); }} className="btn-text" style={{marginLeft:'5px', fontSize:'0.9rem'}}>
               {isRegistering ? 'Giriş Yap' : 'Hemen Kayıt Ol'}
             </button>
           </div>
@@ -306,21 +252,20 @@ function App() {
     </div>
   );
 
-  // --- RENDER: MAIN APP ---
   return (
     <div className="app-container">
-      <Toaster position="top-center" toastOptions={{duration: 4000, style:{fontSize:'0.9rem', fontWeight:500}}}/>
+      <Toaster position="top-center"/>
       <div className="main-wrapper">
 
         <div className="header-card">
           <div className="header-brand">
             <img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/>
-            <div className="brand-text"><h1>VeloxCase</h1><p>Kurumsal Test Entegrasyon Platformu</p></div>
+            <div className="brand-text"><h1>VeloxCase</h1><p>Saniyeler İçinde Sync</p></div>
           </div>
           <div style={{display:'flex', gap:'10px'}}>
             {view === 'dashboard' && (
               <>
-                <button onClick={() => setView('history')} className="btn btn-text" title="Geçmiş İşlemler"><Clock size={20}/> Geçmiş</button>
+                <button onClick={() => setView('history')} className="btn btn-text" title="Geçmiş"><Clock size={20}/> Geçmiş</button>
                 <button onClick={() => setView('settings')} className="btn btn-text" title="Yapılandırma"><Settings size={20}/> Ayarlar</button>
               </>
             )}
@@ -331,16 +276,18 @@ function App() {
         {view === 'settings' ? (
           <div className="settings-view card" style={{animation: 'fadeIn 0.3s ease-out'}}>
              <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>Sistem Ayarları</h2><p>API ve Entegrasyon Yapılandırması</p></div></div>
+
              <div className="settings-tabs">
                 <button className={`tab-btn ${settingsTab === 'api' ? 'active' : ''}`} onClick={() => setSettingsTab('api')}><Zap size={18}/> API Bağlantıları</button>
-                <button className={`tab-btn ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}><Lock size={18}/> Güvenlik</button>
+                <button className={`tab-btn ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}><Shield size={18}/> Güvenlik</button>
              </div>
+
              {settingsTab === 'api' ? (
                  <div className="settings-grid tab-content fade-in">
                     {Object.keys(settingsData).map(key => (
-                       <div key={key} className="form-group"><label>{key.replace(/_/g, ' ')}</label><input className="form-input" type={key.includes('TOKEN') || key.includes('KEY') ? "password" : "text"} value={settingsData[key]} onChange={e => setSettingsData({...settingsData, [key]: e.target.value})} placeholder={`${key} değerini giriniz...`}/></div>
+                       <div key={key} className="form-group"><label>{key.replace(/_/g, ' ')}</label><input className="form-input" type={key.includes('TOKEN') || key.includes('KEY') ? "password" : "text"} value={settingsData[key]} onChange={e => setSettingsData({...settingsData, [key]: e.target.value})} placeholder={`${key} giriniz...`}/></div>
                     ))}
-                    <div style={{gridColumn: 'span 2', textAlign:'right'}}><button onClick={saveSettings} className="btn btn-primary" disabled={settingsLoading} style={{width:'160px'}}>{settingsLoading ? <Loader2 className="spinner" size={20}/> : <><Save size={18}/> Kaydet</>}</button></div>
+                    <div style={{gridColumn: 'span 2', textAlign:'right'}}><button onClick={saveSettings} className="btn btn-primary" disabled={settingsLoading} style={{width:'160px'}}>{settingsLoading ? <Loader2 className="spinner"/> : <><Save size={18}/> Kaydet</>}</button></div>
                  </div>
              ) : (
                  <div className="tab-content fade-in" style={{maxWidth:'400px'}}>
@@ -355,7 +302,7 @@ function App() {
           <div className="card" style={{animation: 'fadeIn 0.3s ease-out'}}>
              <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>İşlem Geçmişi</h2><p>Son yapılan aktarımlar</p></div></div>
              <div className="history-table-wrapper">
-               <table className="history-table"><thead><tr><th>Tarih</th><th>Görev Anahtarı</th><th>Oluşturulan Senaryo</th><th>Durum</th></tr></thead><tbody>{historyData.map(log => (<tr key={log.id}><td style={{color:'#64748b'}}>{log.date}</td><td style={{fontWeight:600}}>{log.task}</td><td>{log.case}</td><td><span className="status-badge-success">{log.status}</span></td></tr>))}</tbody></table>
+               <table className="history-table"><thead><tr><th>Tarih</th><th>Task</th><th>Oluşturulan Case</th><th>Durum</th></tr></thead><tbody>{historyData.map(log => (<tr key={log.id}><td style={{color:'#64748b'}}>{log.date}</td><td style={{fontWeight:600}}>{log.task}</td><td>{log.case}</td><td><span className="status-badge-success">{log.status}</span></td></tr>))}</tbody></table>
              </div>
           </div>
         ) : (
@@ -372,8 +319,20 @@ function App() {
             </div>
             <div className="content-area">
               <div className="card"><label className="form-label" style={{fontSize:'1.1rem'}}>Jira Task Listesi</label>
+
               {/* PREVIEW KARTI */}
-              {previewLoading ? (<div className="preview-loader"><Loader2 className="spinner text-primary"/> Task bilgisi alınıyor...</div>) : previewTask && (<div className="preview-card">{previewTask.icon && <img src={previewTask.icon} alt="Type" style={{width:20, height:20}} />}<div><strong>{previewTask.key}:</strong> {previewTask.summary}<span className={`status-tag ${previewTask.status === 'Done' ? 'status-done' : ''}`}>{previewTask.status}</span></div></div>)}
+              {previewLoading ? (
+                <div className="preview-loader"><Loader2 className="spinner text-primary"/> Task bilgisi alınıyor...</div>
+              ) : previewTask && (
+                <div className="preview-card">
+                  {previewTask.icon && <img src={previewTask.icon} alt="Type" style={{width:20, height:20}} />}
+                  <div>
+                    <strong>{previewTask.key}:</strong> {previewTask.summary}
+                    <span className={`status-tag ${previewTask.status === 'Done' ? 'status-done' : ''}`}>{previewTask.status}</span>
+                  </div>
+                </div>
+              )}
+
               <div style={{display:'flex', gap:'12px', marginTop:'1rem'}}><div style={{flex:1}}><input className="form-input" placeholder="Örn: PROJ-123, PROJ-456" value={jiraInput} onChange={e=>setJiraInput(e.target.value)} style={{padding:'1rem', fontSize:'1.1rem', fontWeight:'600'}}/></div><button onClick={handleSync} disabled={loading} className="btn btn-primary" style={{width:'220px'}}>{loading ? <><Loader2 className="spinner" size={20}/> İşleniyor...</> : <><Zap size={20}/> Senkronize Et <ArrowRight size={20}/></>}</button></div><p className="helper-text" style={{marginTop:'1rem'}}>* Çoklu giriş için virgül ile ayırabilirsiniz.</p></div>
               {syncResults.length > 0 && (
                 <div className="result-card"><div className="result-header"><div className="success-icon-box" style={{background:'#f1f5f9', color:'#1e293b'}}><List size={24} strokeWidth={3}/></div><div><h3 className="result-title">İşlem Özeti</h3><div className="result-meta"><span className="meta-tag">Toplam: {syncResults.length} Kayıt</span></div></div></div><div className="case-list">{syncResults.map((res, idx) => (<div key={idx} className="case-item" style={{borderLeft: res.status==='success' ? '4px solid #22c55e' : '4px solid #ef4444'}}><div className="case-info">{res.status === 'success' ? <Check className="text-green" size={20}/> : <XCircle className="text-red" size={20}/>}<div><span className="case-name" style={{display:'block'}}>{res.task}</span><span style={{fontSize:'0.8rem', color:'#64748b'}}>{res.status === 'success' ? res.case_name : res.msg}</span></div></div>{res.status === 'success' && <div style={{display:'flex', alignItems:'center', gap:'8px'}}><span className="img-badge"><ImageIcon size={12}/> {res.images} Resim</span></div>}</div>))}</div></div>
