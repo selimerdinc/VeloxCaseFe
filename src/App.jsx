@@ -210,7 +210,7 @@ function App() {
       <Toaster position="top-center"/>
       <div className="login-card">
         <div className="login-header">
-           <img src="/logo.png" alt="VeloxCase" style={{height:80, marginBottom:32}} className="mx-auto"/>
+           <img src="/logo.png" alt="VeloxCase" style={{height:160, marginBottom:64}} className="mx-auto"/>
            <h1>VeloxCase</h1>
            <p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Giriş Yap'}</p>
         </div>
