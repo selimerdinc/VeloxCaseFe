@@ -210,9 +210,9 @@ function App() {
       <Toaster position="top-center"/>
       <div className="login-card">
         <div className="login-header">
-           <img src="/logo.png" alt="VeloxCase" style={{height:60, marginBottom:16}} className="mx-auto"/>
+           <img src="/logo.png" alt="VeloxCase" style={{height:80, marginBottom:32}} className="mx-auto"/>
            <h1>VeloxCase</h1>
-           <p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Yönetici Girişi'}</p>
+           <p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Giriş Yap'}</p>
         </div>
         <form onSubmit={handleAuth}>
           <div className="form-group">
@@ -251,7 +251,7 @@ function App() {
 
         <div className="header-card">
           <div className="header-brand">
-            <img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/>
+            <img src="/logo.png" alt="VeloxCase" style={{height:60, marginRight:20}}/>
             <div className="brand-text"><h1>VeloxCase</h1><p>Saniyeler İçinde Sync</p></div>
           </div>
           <div style={{display:'flex', gap:'10px'}}>
