@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { LogOut } from 'lucide-react';
+// import { LogOut } from 'lucide-react'; // <<< HATA KAYNAĞI: Bu satır kaldırıldı.
 
 const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
 
@@ -89,7 +89,7 @@ export const useAuth = () => {
         } catch (err) {
             // Profesyonel Hata Yakalama ve Mesajı
             const apiMsg = err.response?.data?.msg;
-            let displayMsg = "Kimlik doğrulama işlemi sırasında bilinmeyen bir hata oluştu.";
+            let displayMsg = "Kimlik doğrulama işlemi başarısız. Lütfen bilgileri kontrol edin.";
 
             if (apiMsg === 'User already exists') {
                 displayMsg = "Kayıt Başarısız: Bu kullanıcı adı zaten sistemde mevcut.";
