@@ -11,7 +11,6 @@ const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
  */
 export const useAuth = () => {
     // --- AUTH STATE'leri ---
-    // Başlangıçta Local Storage'daki token'ı kontrol et
     const [token, setToken] = useState(localStorage.getItem('qc_token'));
     const [isRegistering, setIsRegistering] = useState(false);
     const [username, setUsername] = useState('');
@@ -25,7 +24,6 @@ export const useAuth = () => {
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         } else {
-            // Token silindiğinde Authorization Header'ını kaldır.
             delete axios.defaults.headers.common['Authorization'];
         }
     }, [token]);
@@ -42,7 +40,7 @@ export const useAuth = () => {
     }
     const strengthScore = getStrength(password);
 
-    // --- İŞLEV: Oturum Açma / Kayıt Olma ---
+    // --- İŞLEV: Oturum Açma / Kayıt Olma (GÜÇLENDİRİLDİ) ---
     const handleAuth = useCallback(async (e) => {
         e.preventDefault();
 
@@ -75,7 +73,6 @@ export const useAuth = () => {
         try {
             const res = await axios.post(`${API_BASE_URL}${endpoint}`, { username, password });
 
-            // API'den dönen token kontrolü
             const receivedToken = res.data.access_token;
             if (!receivedToken) {
                 throw new Error("API'den geçerli token alınamadı.");
@@ -89,10 +86,14 @@ export const useAuth = () => {
             } else {
                 // Giriş başarılı: Token'ı kaydet ve state'i güncelle
                 localStorage.setItem('qc_token', receivedToken);
-                setToken(receivedToken); // <<< Burası App.jsx'in yeniden render olmasını sağlar.
-                toast.success(`Giriş Başarılı! Sisteme hoş geldiniz, ${username}.`, { icon: '👋' });
+                setToken(receivedToken); // <<< KRİTİK: App.jsx'in re-render'ı için burası şart
 
-                // NOT: Eğer hala geçiş yapmıyorsa, tarayıcınızın önbelleğini temizleyip deneyin.
+                // Form alanlarını ve hata state'lerini temizle (UX ve Re-render Fix)
+                setUsername('');
+                setPassword('');
+                setErrors({username: false, password: false});
+
+                toast.success(`Giriş Başarılı! Sisteme hoş geldiniz, ${username}.`, { icon: '👋' });
             }
         } catch (err) {
             // Hata Yakalama
@@ -114,7 +115,7 @@ export const useAuth = () => {
         }
     }, [username, password, isRegistering]);
 
-    // ... (handleLogout ve handleForgotPassword aynı kalır) ...
+    // --- İŞLEV: Oturumu Kapatma ---
     const handleLogout = useCallback(() => {
         localStorage.removeItem('qc_token');
         setToken(null);
@@ -124,6 +125,7 @@ export const useAuth = () => {
         toast('Oturum güvenli bir şekilde sonlandırıldı.', {icon:'🔒'});
     }, []);
 
+    // --- İŞLEV: Şifremi Unuttum ---
     const handleForgotPassword = useCallback(() => {
         toast((t) => (
             <div style={{textAlign: 'center', padding: '4px'}}>
