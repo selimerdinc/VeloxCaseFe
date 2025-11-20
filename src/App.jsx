@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-// Sun ve Moon ikonları eklendi
+// YALNIZCA HEADER VE TEMA İÇİN GEREKLİ İKONLAR:
 import { Settings, Clock, LogOut, Sun, Moon } from 'lucide-react';
 import './App.css';
 
@@ -16,32 +16,27 @@ import DashboardView from './features/dashboard/components/DashboardView';
 import HistoryView from './features/dashboard/components/HistoryView';
 import SettingsView from './features/settings/components/SettingsView';
 
-// YENİ: Başlangıç teması belirleme fonksiyonu
+
 const getInitialTheme = () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) return savedTheme;
-    // Sistem tercihini kontrol et
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function App() {
-  // 1. GLOBAL STATE (Navigation & Theme)
   const [view, setView] = useState('dashboard');
-  const [theme, setTheme] = useState(getInitialTheme); // YENİ: Tema state'i
+  const [theme, setTheme] = useState(getInitialTheme);
 
-  // 2. TEMA YÖNETİMİ
   const handleThemeToggle = () => {
       setTheme(t => (t === 'light' ? 'dark' : 'light'));
   };
 
-  // Tema state'i değiştiğinde Body'ye sınıfı uygula ve Local Storage'a kaydet
   useEffect(() => {
     document.body.className = theme === 'dark' ? 'dark-mode' : '';
     localStorage.setItem('theme', theme);
   }, [theme]);
 
 
-  // 3. GLOBAL MANTIK KATMANI
   const { token, handleLogout } = useAuth();
   const dashboardLogic = useDashboard(token, view, handleLogout, setView);
 
@@ -60,7 +55,7 @@ function App() {
           <div className="header-brand"><img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/><div className="brand-text"><h1>VeloxCase</h1><p>Kurumsal Test Entegrasyon Platformu</p></div></div>
           <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
 
-            {/* TEMA DEĞİŞTİRME BUTONU (YENİ) */}
+            {/* TEMA DEĞİŞTİRME BUTONU */}
             <button onClick={handleThemeToggle} className="btn btn-text" title="Temayı Değiştir" style={{color: 'var(--text-main)'}}>
                 {theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}
             </button>
