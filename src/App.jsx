@@ -2,25 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { Settings, Clock, LogOut, Sun, Moon } from 'lucide-react';
+import { Settings, Clock, LogOut, Sun, Moon, Loader2 } from 'lucide-react'; // Loader2 eklendi
 import './App.css';
 
 // Hook'lar
 import { useAuth } from './features/auth/useAuth';
 import { useDashboard } from './features/dashboard/useDashboard';
 
-// Bileşenler
+// Bileşenler (Aynı Kalır)
 import LoginView from './features/auth/components/LoginView';
 import DashboardView from './features/dashboard/components/DashboardView';
 import HistoryView from './features/dashboard/components/HistoryView';
 import SettingsView from './features/settings/components/SettingsView';
 
 
-const getInitialTheme = () => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) return savedTheme;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
+const getInitialTheme = () => { /* ... aynı kalır ... */ };
 
 function App() {
   // 1. GLOBAL STATE (Navigation & Theme)
@@ -28,10 +24,9 @@ function App() {
   const [theme, setTheme] = useState(getInitialTheme);
 
   // 2. GLOBAL MANTIK KATMANI
-  // YENİ: authKey'i hook'tan alıyoruz.
-  const { token, handleLogout, authKey } = useAuth();
+  // YENİ: authKey'i ve isInitialized'ı hook'tan alıyoruz.
+  const { token, handleLogout, authKey, isInitialized } = useAuth();
 
-  // useDashboard'a setView'ı geçiriyoruz.
   const dashboardLogic = useDashboard(token, view, handleLogout, setView);
 
   const handleThemeToggle = () => { /* ... aynı kalır ... */ setTheme(t => (t === 'light' ? 'dark' : 'light')); };
@@ -39,13 +34,22 @@ function App() {
   useEffect(() => { /* ... aynı kalır ... */ document.body.className = theme === 'dark' ? 'dark-mode' : ''; localStorage.setItem('theme', theme); }, [theme]);
 
 
+  // --- YENİ: YÜKLENİYOR EKRANI (Token Yüklenene kadar bekle) ---
+  if (!isInitialized) {
+    return (
+      <div className="app-container" style={{justifyContent: 'center', alignItems: 'center'}}>
+        <Loader2 className="spinner" size={36} color="var(--primary)"/>
+        <p style={{marginTop: '1rem', color: 'var(--text-secondary)'}}>Sistem yükleniyor...</p>
+      </div>
+    );
+  }
+
   // --- RENDER: LOGIN ---
   if (!token) return <LoginView theme={theme} handleThemeToggle={handleThemeToggle} />;
 
   // --- RENDER: MAIN APP (Router + Layout) ---
   return (
-    // KRİTİK: authKey'i buraya vererek, login başarılı olduğunda
-    // App bileşeninin içindeki tüm Hook'ların ve state'lerin yenilenmesini sağlıyoruz.
+    // KRİTİK: authKey'i key olarak kullanıyoruz.
     <div className="app-container" key={authKey}>
       <Toaster position="top-center" toastOptions={{duration: 4000, style:{fontSize:'0.9rem', fontWeight:500}}}/>
       <div className="main-wrapper">
