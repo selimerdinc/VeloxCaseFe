@@ -19,7 +19,6 @@ import SettingsView from './features/settings/components/SettingsView';
 const getInitialTheme = () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) return savedTheme;
-    // Sistem tercihini kontrol et
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
@@ -28,23 +27,16 @@ function App() {
   const [view, setView] = useState('dashboard');
   const [theme, setTheme] = useState(getInitialTheme);
 
-  // 2. TEMA YÖNETİMİ
-  const handleThemeToggle = () => {
-      setTheme(t => (t === 'light' ? 'dark' : 'light'));
-  };
+  // 2. GLOBAL MANTIK KATMANI
+  // YENİ: authKey'i hook'tan alıyoruz.
+  const { token, handleLogout, authKey } = useAuth();
 
-  // Tema state'i değiştiğinde Body'ye sınıfı uygula ve Local Storage'a kaydet
-  useEffect(() => {
-    // Body'ye sınıf atayarak CSS değişkenlerinin uygulanmasını sağlar
-    document.body.className = theme === 'dark' ? 'dark-mode' : '';
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-
-  // 3. GLOBAL MANTIK KATMANI
-  const { token, handleLogout } = useAuth();
-  // useDashboard'a setView'ı geçirerek Ayarlar'dan sonra Dashboard'a dönmesini sağlıyoruz.
+  // useDashboard'a setView'ı geçiriyoruz.
   const dashboardLogic = useDashboard(token, view, handleLogout, setView);
+
+  const handleThemeToggle = () => { /* ... aynı kalır ... */ setTheme(t => (t === 'light' ? 'dark' : 'light')); };
+
+  useEffect(() => { /* ... aynı kalır ... */ document.body.className = theme === 'dark' ? 'dark-mode' : ''; localStorage.setItem('theme', theme); }, [theme]);
 
 
   // --- RENDER: LOGIN ---
@@ -52,7 +44,9 @@ function App() {
 
   // --- RENDER: MAIN APP (Router + Layout) ---
   return (
-    <div className="app-container">
+    // KRİTİK: authKey'i buraya vererek, login başarılı olduğunda
+    // App bileşeninin içindeki tüm Hook'ların ve state'lerin yenilenmesini sağlıyoruz.
+    <div className="app-container" key={authKey}>
       <Toaster position="top-center" toastOptions={{duration: 4000, style:{fontSize:'0.9rem', fontWeight:500}}}/>
       <div className="main-wrapper">
 
