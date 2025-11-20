@@ -1,7 +1,7 @@
 // src/features/settings/components/SettingsView.jsx
 
 import React from 'react';
-import { ArrowLeft, Settings, Zap, Shield, Loader2, Save, Lock } from 'lucide-react';
+import { ArrowLeft, Zap, Shield, Loader2, Save, Lock } from 'lucide-react';
 
 function SettingsView(props) {
     const {
