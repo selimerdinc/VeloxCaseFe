@@ -8,10 +8,6 @@ const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
 
 /**
  * useDashboard: Dashboard ekranının tüm veri yönetimi ve iş mantığını yönetir.
- * @param {string} token - Kullanıcının kimlik doğrulama token'ı
- * @param {string} currentView - Uygulamanın şu anki görünümü ('dashboard', 'settings', 'history')
- * @param {function} onLogout - 401 hatası durumunda oturumu kapatmak için App.jsx'ten gelen fonksiyon
- * @param {function} setView - Görünümü değiştirmek için App.jsx'ten gelen fonksiyon (Settings'ten Dashboard'a dönmek için)
  */
 export const useDashboard = (token, currentView, onLogout, setView) => {
     // --- DASHBOARD STATE'leri ---
@@ -25,6 +21,9 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     const [showNewFolder, setShowNewFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
 
+    // YENİ: Dashboard Input Hata State'i
+    const [dashboardErrors, setDashboardErrors] = useState({ jiraInput: false, selectedFolder: false });
+
     // --- PREVIEW STATE ---
     const [previewTask, setPreviewTask] = useState(null);
     const [previewLoading, setPreviewLoading] = useState(false);
@@ -36,12 +35,10 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     const [stats, setStats] = useState({ total_cases: 0, total_images: 0, today_syncs: 0 });
     const [settingsTab, setSettingsTab] = useState('api');
     const [passwordData, setPasswordData] = useState({ old: '', new: '', confirm: '' });
-
-    // YENİ: Password Hata State'i
     const [passwordErrors, setPasswordErrors] = useState({ old: false, new: false, confirm: false });
 
 
-    // --- VERİ ÇEKME İŞLEVLERİ ---
+    // --- VERİ ÇEKME İŞLEVLERİ (Aynı kalır) ---
     const fetchFolders = useCallback(async () => {
         if (!repoId || !token || currentView !== 'dashboard') return;
         setFoldersLoading(true);
@@ -66,7 +63,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     }, [token, currentView]);
 
 
-    // --- YAN ETKİLER (USE EFFECT) ---
+    // --- YAN ETKİLER (USE EFFECT - Aynı kalır) ---
     useEffect(() => {
         if(token && currentView === 'dashboard') {
             fetchFolders();
@@ -107,11 +104,22 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     }, [jiraInput, token]);
 
 
-    // --- İŞLEVLER: CRUD/AKSYONLAR (GELİŞTİRİLDİ) ---
+    // --- İŞLEVLER: CRUD/AKSYONLAR (GÜNCELLENDİ) ---
 
-    // Senkronizasyon Başlatma
+    // Senkronizasyon Başlatma (GÜNCELLENDİ)
     const handleSync = async () => {
-        if (!jiraInput || !selectedFolder) return toast.error("Lütfen Jira Anahtarı ve Hedef Klasör alanlarını doldurunuz.", { icon: '🛑' });
+        // Hata kontrolü için yeni değişkenler
+        const newErrors = {
+            jiraInput: !jiraInput || jiraInput.trim() === '',
+            selectedFolder: !selectedFolder || selectedFolder === ''
+        };
+        setDashboardErrors(newErrors);
+
+        if (newErrors.jiraInput || newErrors.selectedFolder) {
+            return toast.error("Lütfen Jira Anahtarı ve Hedef Klasör alanlarını doldurunuz.", { icon: '🛑' });
+        }
+
+        // Eğer hata yoksa senkronizasyonu başlat
         setLoading(true); setSyncResults([]);
         const tId = toast.loading('Entegrasyon başlatıldı, veriler işleniyor...');
         try {
@@ -164,9 +172,8 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         }
     };
 
-    // Şifre Değiştirme (GELİŞTİRİLDİ)
+    // Şifre Değiştirme
     const handleChangePassword = async () => {
-        // Hata state'ini temizle
         setPasswordErrors({ old: false, new: false, confirm: false });
 
         let hasError = false;
@@ -216,10 +223,19 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         syncResults, showNewFolder, newFolderName, previewTask, previewLoading,
         settingsData, settingsLoading, historyData, stats, settingsTab, passwordData,
         passwordErrors,
+        dashboardErrors, // YENİ EKLENDİ
 
-        // Setters
-        setRepoId, setSelectedFolder, setJiraInput, setShowNewFolder,
-        setNewFolderName, setSettingsData, setSettingsTab, setPasswordData,
+        // Setters (Input/Select güncellenince hatayı temizleme mantığı eklendi)
+        setRepoId,
+        setSelectedFolder: (value) => {
+            setSelectedFolder(value);
+            if (dashboardErrors.selectedFolder) setDashboardErrors(e => ({...e, selectedFolder: false}));
+        },
+        setJiraInput: (value) => {
+            setJiraInput(value);
+            if (dashboardErrors.jiraInput) setDashboardErrors(e => ({...e, jiraInput: false}));
+        },
+        setShowNewFolder, setNewFolderName, setSettingsData, setSettingsTab, setPasswordData,
         setPasswordErrors,
 
         // İşlevler

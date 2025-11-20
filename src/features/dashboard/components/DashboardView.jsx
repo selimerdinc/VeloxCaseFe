@@ -5,7 +5,6 @@ import {
   Zap, FolderPlus, ArrowRight, Image as ImageIcon, Loader2,
   PlusCircle, List, XCircle, BarChart3, Calendar, Check
 } from 'lucide-react';
-// Diğer tüm ikonlar artık bu bileşende import edilmeli.
 
 // Prop'lar: useDashboard hook'undan gelen tüm değerler
 function DashboardView(props) {
@@ -14,12 +13,13 @@ function DashboardView(props) {
         folders, foldersLoading, selectedFolder, setSelectedFolder,
         showNewFolder, setShowNewFolder, newFolderName, setNewFolderName, handleCreateFolder,
         jiraInput, setJiraInput, previewTask, previewLoading,
-        loading, handleSync, syncResults
+        loading, handleSync, syncResults,
+        dashboardErrors // YENİ: Dashboard Hataları
     } = props;
 
     return (
         <>
-          {/* 1. STATS GRID */}
+          {/* 1. STATS GRID (Aynı Kalır) */}
           <div className="stats-grid">
              <div className="stat-card"><div className="stat-icon bg-blue"><BarChart3 size={24} color="#2563eb"/></div><div className="stat-info"><h3>{stats.total_cases || 0}</h3><p>Toplam Senaryo</p></div></div>
              <div className="stat-card"><div className="stat-icon bg-purple"><ImageIcon size={24} color="#9333ea"/></div><div className="stat-info"><h3>{stats.total_images || 0}</h3><p>İşlenen Görsel</p></div></div>
@@ -45,12 +45,20 @@ function DashboardView(props) {
                     </div>
                   )}
 
-                  {/* Klasör Seçimi */}
+                  {/* Klasör Seçimi (GÜNCELLENDİ) */}
                   <div className="input-container">
-                    <select className="form-select" value={selectedFolder} onChange={e=>setSelectedFolder(e.target.value)} disabled={foldersLoading}>
+                    <select
+                        // Hata Sınıfı Eklendi
+                        className={`form-select ${dashboardErrors.selectedFolder ? 'input-error' : ''}`}
+                        value={selectedFolder}
+                        onChange={e=>setSelectedFolder(e.target.value)}
+                        disabled={foldersLoading}
+                    >
                       <option value="">{foldersLoading ? 'Yükleniyor...' : 'Bir klasör seçiniz...'}</option>
                       {folders.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
+                    {/* Hata Mesajı */}
+                    {dashboardErrors.selectedFolder && <p className="helper-text text-red" style={{color:'var(--error)'}}>Lütfen hedef klasörü seçiniz.</p>}
                   </div>
                 </div>
               </div>
@@ -71,10 +79,19 @@ function DashboardView(props) {
                   </div>
                 )}
 
-                {/* Sync Input & Button */}
+                {/* Sync Input & Button (GÜNCELLENDİ) */}
                 <div style={{display:'flex', gap:'12px', marginTop:'1rem'}}>
                   <div style={{flex:1}}>
-                    <input className="form-input" placeholder="Örn: PROJ-123, PROJ-456" value={jiraInput} onChange={e=>setJiraInput(e.target.value)} style={{padding:'1rem', fontSize:'1.1rem', fontWeight:'600'}}/>
+                    <input
+                        // Hata Sınıfı Eklendi
+                        className={`form-input ${dashboardErrors.jiraInput ? 'input-error' : ''}`}
+                        placeholder="Örn: PROJ-123, PROJ-456"
+                        value={jiraInput}
+                        onChange={e=>setJiraInput(e.target.value)}
+                        style={{padding:'1rem', fontSize:'1.1rem', fontWeight:'600'}}
+                    />
+                    {/* Hata Mesajı */}
+                    {dashboardErrors.jiraInput && <p className="helper-text text-red" style={{color:'var(--error)'}}>Lütfen Jira görev anahtarını giriniz.</p>}
                   </div>
                   <button onClick={handleSync} disabled={loading} className="btn btn-primary" style={{width:'220px'}}>
                     {loading ? <><Loader2 className="spinner" size={20}/> İşleniyor...</> : <><Zap size={20}/> Senkronize Et <ArrowRight size={20}/></>}
@@ -83,7 +100,7 @@ function DashboardView(props) {
                 <p className="helper-text" style={{marginTop:'1rem'}}>* Çoklu giriş için virgül ile ayırabilirsiniz.</p>
               </div>
 
-              {/* Sync Results Card */}
+              {/* Sync Results Card (Aynı Kalır) */}
               {syncResults.length > 0 && (
                 <div className="result-card">
                     <div className="result-header">

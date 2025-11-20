@@ -40,7 +40,7 @@ export const useAuth = () => {
     }
     const strengthScore = getStrength(password);
 
-    // --- İŞLEV: Oturum Açma / Kayıt Olma (GÜÇLENDİRİLDİ) ---
+    // --- İŞLEV: Oturum Açma / Kayıt Olma (KRİTİK GÜNCELLEME BURADA) ---
     const handleAuth = useCallback(async (e) => {
         e.preventDefault();
 
@@ -84,14 +84,20 @@ export const useAuth = () => {
                 setIsRegistering(false);
                 setPassword('');
             } else {
-                // Giriş başarılı: Token'ı kaydet ve state'i güncelle
+                // Giriş başarılı: Token'ı kaydet
                 localStorage.setItem('qc_token', receivedToken);
-                setToken(receivedToken); // <<< KRİTİK: App.jsx'in re-render'ı için burası şart
 
-                // Form alanlarını ve hata state'lerini temizle (UX ve Re-render Fix)
+                // Form alanlarını ve hata state'lerini temizle
                 setUsername('');
                 setPassword('');
                 setErrors({username: false, password: false});
+
+                // KRİTİK DÜZELTME: setToken çağrısını bir sonraki döngüye ertele
+                // Bu, React'ın diğer state güncellemelerini bitirmesini ve
+                // App.jsx'in yeni token değeriyle temiz bir re-render yapmasını sağlar.
+                setTimeout(() => {
+                   setToken(receivedToken);
+                }, 0);
 
                 toast.success(`Giriş Başarılı! Sisteme hoş geldiniz, ${username}.`, { icon: '👋' });
             }
