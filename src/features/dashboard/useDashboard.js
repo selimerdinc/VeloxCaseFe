@@ -21,8 +21,12 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     const [showNewFolder, setShowNewFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
 
-    // YENİ: Dashboard Input Hata State'i
-    const [dashboardErrors, setDashboardErrors] = useState({ jiraInput: false, selectedFolder: false });
+    // YENİ: Dashboard Input Hata State'i (newFolderName eklendi)
+    const [dashboardErrors, setDashboardErrors] = useState({
+        jiraInput: false,
+        selectedFolder: false,
+        newFolderName: false
+    });
 
     // --- PREVIEW STATE ---
     const [previewTask, setPreviewTask] = useState(null);
@@ -104,22 +108,20 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     }, [jiraInput, token]);
 
 
-    // --- İŞLEVLER: CRUD/AKSYONLAR (GÜNCELLENDİ) ---
+    // --- İŞLEVLER: CRUD/AKSYONLAR ---
 
-    // Senkronizasyon Başlatma (GÜNCELLENDİ)
+    // Senkronizasyon Başlatma
     const handleSync = async () => {
-        // Hata kontrolü için yeni değişkenler
         const newErrors = {
             jiraInput: !jiraInput || jiraInput.trim() === '',
             selectedFolder: !selectedFolder || selectedFolder === ''
         };
-        setDashboardErrors(newErrors);
+        setDashboardErrors(e => ({...e, ...newErrors}));
 
         if (newErrors.jiraInput || newErrors.selectedFolder) {
             return toast.error("Lütfen Jira Anahtarı ve Hedef Klasör alanlarını doldurunuz.", { icon: '🛑' });
         }
 
-        // Eğer hata yoksa senkronizasyonu başlat
         setLoading(true); setSyncResults([]);
         const tId = toast.loading('Entegrasyon başlatıldı, veriler işleniyor...');
         try {
@@ -142,17 +144,29 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         }
     };
 
-    // Yeni Klasör Oluşturma
+    // Yeni Klasör Oluşturma (GÜNCELLENDİ: Hata Yönetimi Eklendi)
     const handleCreateFolder = async () => {
-        if (!newFolderName) return toast.error("Lütfen klasör adı giriniz.");
+        // Boşluk kontrolü ve Hata Set Etme
+        if (!newFolderName || newFolderName.trim() === '') {
+            setDashboardErrors(e => ({...e, newFolderName: true}));
+            return toast.error("Lütfen klasör adı giriniz.");
+        }
+
         try {
             const res = await axios.post(`${API_BASE_URL}/folders/${repoId}`, { name: newFolderName, parent_id: selectedFolder || null });
             await fetchFolders();
             if(res.data?.id) setSelectedFolder(res.data.id);
+
+            // Başarılı: Temizle
             setNewFolderName('');
             setShowNewFolder(false);
+            setDashboardErrors(e => ({...e, newFolderName: false}));
+
             toast.success(`Klasör başarıyla oluşturuldu: ${newFolderName}`, { icon: '📁' });
         } catch (err) {
+            // Hata: Input'u kırmızı yap
+            setDashboardErrors(e => ({...e, newFolderName: true}));
+
             const msg = err.response?.data?.msg || "Klasör oluşturma hatası. Aynı isimde bir klasör olabilir.";
             toast.error(msg);
         }
@@ -223,9 +237,9 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         syncResults, showNewFolder, newFolderName, previewTask, previewLoading,
         settingsData, settingsLoading, historyData, stats, settingsTab, passwordData,
         passwordErrors,
-        dashboardErrors, // YENİ EKLENDİ
+        dashboardErrors,
 
-        // Setters (Input/Select güncellenince hatayı temizleme mantığı eklendi)
+        // Setters (Input/Select güncellenince hatayı temizleme mantığı)
         setRepoId,
         setSelectedFolder: (value) => {
             setSelectedFolder(value);
@@ -235,7 +249,12 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
             setJiraInput(value);
             if (dashboardErrors.jiraInput) setDashboardErrors(e => ({...e, jiraInput: false}));
         },
-        setShowNewFolder, setNewFolderName, setSettingsData, setSettingsTab, setPasswordData,
+        setNewFolderName: (value) => {
+            setNewFolderName(value);
+            // Kullanıcı yazmaya başladığında kırmızılığı kaldır
+            if (dashboardErrors.newFolderName) setDashboardErrors(e => ({...e, newFolderName: false}));
+        },
+        setShowNewFolder, setSettingsData, setSettingsTab, setPasswordData,
         setPasswordErrors,
 
         // İşlevler

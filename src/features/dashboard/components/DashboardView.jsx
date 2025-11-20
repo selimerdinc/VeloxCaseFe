@@ -14,12 +14,12 @@ function DashboardView(props) {
         showNewFolder, setShowNewFolder, newFolderName, setNewFolderName, handleCreateFolder,
         jiraInput, setJiraInput, previewTask, previewLoading,
         loading, handleSync, syncResults,
-        dashboardErrors // YENİ: Dashboard Hataları
+        dashboardErrors // Dashboard Hataları
     } = props;
 
     return (
         <>
-          {/* 1. STATS GRID (Aynı Kalır) */}
+          {/* 1. STATS GRID */}
           <div className="stats-grid">
              <div className="stat-card"><div className="stat-icon bg-blue"><BarChart3 size={24} color="#2563eb"/></div><div className="stat-info"><h3>{stats.total_cases || 0}</h3><p>Toplam Senaryo</p></div></div>
              <div className="stat-card"><div className="stat-icon bg-purple"><ImageIcon size={24} color="#9333ea"/></div><div className="stat-info"><h3>{stats.total_images || 0}</h3><p>İşlenen Görsel</p></div></div>
@@ -37,18 +37,23 @@ function DashboardView(props) {
                 <div className="form-group">
                   <label className="form-label" style={{display:'flex', justifyContent:'space-between'}}>Hedef Klasör <button onClick={()=>setShowNewFolder(!showNewFolder)} className="btn-text"><FolderPlus size={16}/> Yeni</button></label>
 
-                  {/* Yeni Klasör Oluşturma Alanı */}
+                  {/* Yeni Klasör Oluşturma Alanı (GÜNCELLENDİ) */}
                   {showNewFolder && (
                     <div className="new-folder-wrapper">
-                      <input className="form-input" placeholder="Klasör adı..." value={newFolderName} onChange={e=>setNewFolderName(e.target.value)}/>
+                      <input
+                        // Hata durumunda kırmızı çerçeve ekle
+                        className={`form-input ${dashboardErrors.newFolderName ? 'input-error' : ''}`}
+                        placeholder="Klasör adı..."
+                        value={newFolderName}
+                        onChange={e=>setNewFolderName(e.target.value)}
+                      />
                       <button onClick={handleCreateFolder} className="btn btn-success"><PlusCircle size={18}/> Oluştur</button>
                     </div>
                   )}
 
-                  {/* Klasör Seçimi (GÜNCELLENDİ) */}
+                  {/* Klasör Seçimi */}
                   <div className="input-container">
                     <select
-                        // Hata Sınıfı Eklendi
                         className={`form-select ${dashboardErrors.selectedFolder ? 'input-error' : ''}`}
                         value={selectedFolder}
                         onChange={e=>setSelectedFolder(e.target.value)}
@@ -57,7 +62,6 @@ function DashboardView(props) {
                       <option value="">{foldersLoading ? 'Yükleniyor...' : 'Bir klasör seçiniz...'}</option>
                       {folders.map(f=><option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
-                    {/* Hata Mesajı */}
                     {dashboardErrors.selectedFolder && <p className="helper-text text-red" style={{color:'var(--error)'}}>Lütfen hedef klasörü seçiniz.</p>}
                   </div>
                 </div>
@@ -79,18 +83,16 @@ function DashboardView(props) {
                   </div>
                 )}
 
-                {/* Sync Input & Button (GÜNCELLENDİ) */}
+                {/* Sync Input & Button */}
                 <div style={{display:'flex', gap:'12px', marginTop:'1rem'}}>
                   <div style={{flex:1}}>
                     <input
-                        // Hata Sınıfı Eklendi
                         className={`form-input ${dashboardErrors.jiraInput ? 'input-error' : ''}`}
                         placeholder="Örn: PROJ-123, PROJ-456"
                         value={jiraInput}
                         onChange={e=>setJiraInput(e.target.value)}
                         style={{padding:'1rem', fontSize:'1.1rem', fontWeight:'600'}}
                     />
-                    {/* Hata Mesajı */}
                     {dashboardErrors.jiraInput && <p className="helper-text text-red" style={{color:'var(--error)'}}>Lütfen Jira görev anahtarını giriniz.</p>}
                   </div>
                   <button onClick={handleSync} disabled={loading} className="btn btn-primary" style={{width:'220px'}}>
@@ -100,7 +102,7 @@ function DashboardView(props) {
                 <p className="helper-text" style={{marginTop:'1rem'}}>* Çoklu giriş için virgül ile ayırabilirsiniz.</p>
               </div>
 
-              {/* Sync Results Card (Aynı Kalır) */}
+              {/* Sync Results Card */}
               {syncResults.length > 0 && (
                 <div className="result-card">
                     <div className="result-header">
