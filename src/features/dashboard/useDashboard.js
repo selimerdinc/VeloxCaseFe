@@ -8,6 +8,10 @@ const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
 
 /**
  * useDashboard: Dashboard ekranının tüm veri yönetimi ve iş mantığını yönetir.
+ * @param {string} token - Kullanıcının kimlik doğrulama token'ı
+ * @param {string} currentView - Uygulamanın şu anki görünümü ('dashboard', 'settings', 'history')
+ * @param {function} onLogout - 401 hatası durumunda oturumu kapatmak için App.jsx'ten gelen fonksiyon
+ * @param {function} setView - Görünümü değiştirmek için App.jsx'ten gelen fonksiyon (Settings'ten Dashboard'a dönmek için)
  */
 export const useDashboard = (token, currentView, onLogout, setView) => {
     // --- DASHBOARD STATE'leri ---
@@ -37,7 +41,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     const [passwordErrors, setPasswordErrors] = useState({ old: false, new: false, confirm: false });
 
 
-    // --- VERİ ÇEKME İŞLEVLERİ (Aynı kalır) ---
+    // --- VERİ ÇEKME İŞLEVLERİ ---
     const fetchFolders = useCallback(async () => {
         if (!repoId || !token || currentView !== 'dashboard') return;
         setFoldersLoading(true);
@@ -62,7 +66,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     }, [token, currentView]);
 
 
-    // --- YAN ETKİLER (USE EFFECT - Aynı kalır) ---
+    // --- YAN ETKİLER (USE EFFECT) ---
     useEffect(() => {
         if(token && currentView === 'dashboard') {
             fetchFolders();
@@ -116,7 +120,6 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
             const success = res.data.results.filter(r => r.status === 'success').length;
             const failed = res.data.results.length - success;
             if (success > 0) {
-                // Daha açıklayıcı mesaj
                 toast.success(`İşlem Tamamlandı! ${success} kayıt başarıyla aktarıldı. ${failed > 0 ? `(${failed} tanesi hata verdi.)` : ''}`, { id: tId, duration: 8000 });
                 setJiraInput('');
                 fetchStats();
@@ -212,12 +215,12 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         repoId, folders, selectedFolder, jiraInput, loading, foldersLoading,
         syncResults, showNewFolder, newFolderName, previewTask, previewLoading,
         settingsData, settingsLoading, historyData, stats, settingsTab, passwordData,
-        passwordErrors, // YENİ EKLENDİ
+        passwordErrors,
 
         // Setters
         setRepoId, setSelectedFolder, setJiraInput, setShowNewFolder,
         setNewFolderName, setSettingsData, setSettingsTab, setPasswordData,
-        setPasswordErrors, // Hata temizliği için eklendi
+        setPasswordErrors,
 
         // İşlevler
         handleSync, handleCreateFolder, saveSettings, handleChangePassword,

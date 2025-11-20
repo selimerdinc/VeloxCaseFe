@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-// import { LogOut } from 'lucide-react'; // <<< HATA KAYNAĞI: Bu satır kaldırıldı.
 
 const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
 
@@ -82,7 +81,7 @@ export const useAuth = () => {
                 setPassword('');
             } else {
                 localStorage.setItem('qc_token', res.data.access_token);
-                setToken(res.data.access_token);
+                setToken(res.data.access_token); // <<< Başarılı Giriş Burasıdır.
                 // Profesyonel Success Mesajı
                 toast.success(`Giriş Başarılı! Sisteme hoş geldiniz, ${username}.`, { icon: '👋' });
             }

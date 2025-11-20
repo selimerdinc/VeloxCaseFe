@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-// YALNIZCA HEADER VE TEMA İÇİN GEREKLİ İKONLAR:
 import { Settings, Clock, LogOut, Sun, Moon } from 'lucide-react';
 import './App.css';
 
@@ -20,24 +19,31 @@ import SettingsView from './features/settings/components/SettingsView';
 const getInitialTheme = () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) return savedTheme;
+    // Sistem tercihini kontrol et
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function App() {
+  // 1. GLOBAL STATE (Navigation & Theme)
   const [view, setView] = useState('dashboard');
   const [theme, setTheme] = useState(getInitialTheme);
 
+  // 2. TEMA YÖNETİMİ
   const handleThemeToggle = () => {
       setTheme(t => (t === 'light' ? 'dark' : 'light'));
   };
 
+  // Tema state'i değiştiğinde Body'ye sınıfı uygula ve Local Storage'a kaydet
   useEffect(() => {
+    // Body'ye sınıf atayarak CSS değişkenlerinin uygulanmasını sağlar
     document.body.className = theme === 'dark' ? 'dark-mode' : '';
     localStorage.setItem('theme', theme);
   }, [theme]);
 
 
+  // 3. GLOBAL MANTIK KATMANI
   const { token, handleLogout } = useAuth();
+  // useDashboard'a setView'ı geçirerek Ayarlar'dan sonra Dashboard'a dönmesini sağlıyoruz.
   const dashboardLogic = useDashboard(token, view, handleLogout, setView);
 
 

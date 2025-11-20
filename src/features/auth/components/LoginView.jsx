@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
-// Sun ve Moon ikonları eklendi
 import { Eye, EyeOff, Loader2, UserPlus, Lock, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../useAuth';
 
@@ -20,9 +19,15 @@ function LoginView({ theme, handleThemeToggle }) {
         <div className="app-container login-container">
           <Toaster position="top-center" toastOptions={{style:{fontSize:'0.9rem', fontWeight:500}}}/>
 
-          {/* TEMA DEĞİŞTİRME BUTONU (YENİ) */}
+          {/* TEMA DEĞİŞTİRME BUTONU */}
           <div style={{position: 'absolute', top: 30, right: 30}}>
-             <button onClick={handleThemeToggle} className="btn btn-text" title="Temayı Değiştir" style={{color: 'var(--text-main)'}}>
+             <button
+                 onClick={handleThemeToggle}
+                 className="btn btn-text"
+                 title="Temayı Değiştir"
+                 // İkon rengini değişkenlerden al
+                 style={{color: 'var(--text-main)'}}
+             >
                 {theme === 'dark' ? <Sun size={24}/> : <Moon size={24}/>}
             </button>
           </div>
@@ -62,8 +67,8 @@ function LoginView({ theme, handleThemeToggle }) {
                 </div>
 
                 {/* Hata Mesajları */}
-                {errors.password && <p className="helper-text text-red" style={{color:'#ef4444'}}>Lütfen parolanızı giriniz.</p>}
-                {errors.username && !errors.password && <p className="helper-text text-red" style={{color:'#ef4444'}}>Lütfen kullanıcı adınızı giriniz.</p>}
+                {errors.password && <p className="helper-text text-red" style={{color:'var(--error)'}}>Lütfen parolanızı giriniz.</p>}
+                {errors.username && !errors.password && <p className="helper-text text-red" style={{color:'var(--error)'}}>Lütfen kullanıcı adınızı giriniz.</p>}
 
                 {isRegistering && password.length > 0 && (
                   <div className="strength-meter">
