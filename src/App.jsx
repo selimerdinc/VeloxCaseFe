@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import {
-  FolderPlus, Check, ArrowRight, Settings, Clock,
+  // BURAYA DİKKAT: Zap tekrar eklendi 👇
+  Zap, FolderPlus, Check, ArrowRight, Settings, Clock,
   Image as ImageIcon, Loader2,
   PlusCircle, LogOut, Lock, Save, ArrowLeft, List, XCircle, UserPlus,
-  BarChart3, Calendar, Eye, EyeOff
+  BarChart3, Calendar, Eye, EyeOff, Shield
 } from 'lucide-react';
 import './App.css';
 
@@ -15,7 +16,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('qc_token'));
   const [view, setView] = useState('dashboard');
 
-  // --- AUTH STATE ---
+  // AUTH STATE
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +35,7 @@ function App() {
   }
   const strengthScore = getStrength(password);
 
-  // --- DASHBOARD STATE ---
+  // DASHBOARD STATE
   const [repoId, setRepoId] = useState(1);
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState('');
@@ -45,24 +46,28 @@ function App() {
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
-  // --- PREVIEW STATE ---
+  // PREVIEW STATE
   const [previewTask, setPreviewTask] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
-  // --- SETTINGS STATE ---
-  const [settingsData, setSettingsData] = useState({});
+  // SETTINGS & DATA
+  const [settingsTab, setSettingsTab] = useState('api');
+  const [settingsData, setSettingsData] = useState({
+    JIRA_BASE_URL: '', JIRA_EMAIL: '', JIRA_API_TOKEN: '',
+    TESTMO_BASE_URL: '', TESTMO_API_KEY: ''
+  });
+  const [passwordData, setPasswordData] = useState({ old: '', new: '', confirm: '' });
   const [settingsLoading, setSettingsLoading] = useState(false);
+
   const [historyData, setHistoryData] = useState([]);
   const [stats, setStats] = useState({ total_cases: 0, total_images: 0, today_syncs: 0 });
-  const [settingsTab, setSettingsTab] = useState('api');
-  const [passwordData, setPasswordData] = useState({ old: '', new: '', confirm: '' });
 
   useEffect(() => {
     document.title = "VeloxCase | Saniyeler İçinde Sync";
     if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }, [token]);
 
-  // --- DEBOUNCED PREVIEW CHECK ---
+  // --- DEBOUNCED PREVIEW ---
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (token && jiraInput.length > 5 && !jiraInput.includes(',')) {
@@ -70,14 +75,9 @@ function App() {
         try {
           const res = await axios.post(`${API_BASE_URL}/preview`, { task_key: jiraInput });
           setPreviewTask(res.data);
-        } catch {
-          setPreviewTask(null);
-        } finally {
-          setPreviewLoading(false);
-        }
-      } else {
-        setPreviewTask(null);
-      }
+        } catch { setPreviewTask(null); }
+        finally { setPreviewLoading(false); }
+      } else { setPreviewTask(null); }
     }, 800);
     return () => clearTimeout(delayDebounceFn);
   }, [jiraInput, token]);
@@ -100,28 +100,6 @@ function App() {
       }
     } catch (err) { toast.error(err.response?.data?.msg || "İşlem başarısız."); }
     finally { setAuthLoading(false); }
-  };
-
-  // YENİ: ŞİFREMI UNUTTUM FONKSİYONU
-  const handleForgotPassword = () => {
-    toast((t) => (
-      <div style={{textAlign: 'center'}}>
-        <b>Geliştirici ile iletişime geçiniz:</b>
-        <br />
-        <a href="mailto:selim@selimerdinc.com" style={{color: '#4f46e5', textDecoration: 'underline', display: 'block', marginTop: '5px', fontWeight: 'bold'}}>
-          selim@selimerdinc.com
-        </a>
-      </div>
-    ), {
-      icon: '📧',
-      duration: 6000,
-      style: {
-        background: '#fff',
-        color: '#333',
-        border: '1px solid #4f46e5',
-        padding: '16px',
-      },
-    });
   };
 
   const handleLogout = () => {
@@ -147,16 +125,14 @@ function App() {
   }, [token, view]);
 
   useEffect(() => {
-    if(token && view === 'dashboard') {
-      fetchFolders();
-      fetchStats();
-    }
+    if(token && view === 'dashboard') { fetchFolders(); fetchStats(); }
   }, [fetchFolders, fetchStats, token, view]);
 
   useEffect(() => {
     if (view === 'history' && token) axios.get(`${API_BASE_URL}/history`).then(res => setHistoryData(res.data));
     if (view === 'settings' && token) axios.get(`${API_BASE_URL}/settings`).then(res => {
-      const { ...cleanData } = res.data; setSettingsData(cleanData);
+      const { FIGMA_ACCESS_TOKEN, ...cleanData } = res.data;
+      setSettingsData(cleanData);
     });
   }, [view, token]);
 
@@ -174,9 +150,9 @@ function App() {
         setJiraInput(''); fetchStats();
         setTimeout(() => setSyncResults([]), 5000);
       } else {
-        toast.error("Başarısız.", { id: tId });
+        toast.error("İşlem başarısız oldu.", { id: tId });
       }
-    } catch (err) { toast.error("Hata!", { id: tId }); }
+    } catch (err) { toast.error("Sunucu hatası.", { id: tId }); }
     finally { setLoading(false); }
   };
 
@@ -195,7 +171,7 @@ function App() {
     setSettingsLoading(true);
     try {
       await axios.post(`${API_BASE_URL}/settings`, settingsData);
-      toast.success("Kaydedildi");
+      toast.success("Ayarlar kaydedildi");
       setTimeout(() => setView('dashboard'), 1000);
     } catch { toast.error("Hata"); }
     finally { setSettingsLoading(false); }
@@ -213,6 +189,22 @@ function App() {
     finally { setSettingsLoading(false); }
   };
 
+  // Şifremi Unuttum Toast'ı
+  const handleForgotPassword = () => {
+    toast((t) => (
+      <div style={{textAlign: 'center'}}>
+        <b>Geliştirici ile iletişime geçiniz:</b>
+        <br />
+        <a href="mailto:selim@selimerdinc.com" style={{color: '#4f46e5', textDecoration: 'underline', display: 'block', marginTop: '5px', fontWeight: 'bold'}}>
+          selim@selimerdinc.com
+        </a>
+      </div>
+    ), {
+      icon: '📧', duration: 6000,
+      style: { background: '#fff', color: '#333', border: '1px solid #4f46e5', padding: '16px' },
+    });
+  };
+
   if (!token) return (
     <div className="app-container login-container">
       <Toaster position="top-center"/>
@@ -222,81 +214,36 @@ function App() {
            <h1>VeloxCase</h1>
            <p>{isRegistering ? 'Yeni Hesap Oluşturun' : 'Yönetici Girişi'}</p>
         </div>
-
         <form onSubmit={handleAuth}>
           <div className="form-group">
             <label className="form-label">Kullanıcı Adı</label>
-            <input
-              className="form-input"
-              value={username}
-              onChange={e=>setUsername(e.target.value)}
-              placeholder="Kullanıcı Adı"
-            />
+            <input className="form-input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="Kullanıcı Adı"/>
           </div>
-
           <div className="form-group">
             <label className="form-label">Şifre</label>
             <div className="input-wrapper">
-              <input
-                type={showPassword ? "text" : "password"}
-                className="form-input"
-                value={password}
-                onChange={e=>setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                style={{paddingRight: '40px'}}
-              />
-              <button
-                type="button"
-                className="eye-btn"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
-              </button>
+              <input type={showPassword ? "text" : "password"} className="form-input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••••••" style={{paddingRight: '40px'}}/>
+              <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}</button>
             </div>
-
-            {isRegistering && password.length > 0 && (
-              <div className="strength-meter">
-                <div className="strength-bar" style={{
-                  width: `${strengthScore}%`,
-                  backgroundColor: strengthScore < 50 ? '#ef4444' : strengthScore < 75 ? '#eab308' : '#22c55e'
-                }}></div>
-              </div>
-            )}
+            {isRegistering && password.length > 0 && (<div className="strength-meter"><div className="strength-bar" style={{width: `${strengthScore}%`, backgroundColor: strengthScore < 50 ? '#ef4444' : strengthScore < 75 ? '#eab308' : '#22c55e'}}></div></div>)}
           </div>
-
           <button type="submit" className="btn btn-primary" disabled={!username || !password || authLoading} style={{width:'100%', marginBottom:'1rem'}}>
             {authLoading ? <Loader2 className="spinner"/> : (isRegistering ? <><UserPlus size={18}/> Kayıt Ol</> : <><Lock size={18}/> Giriş Yap</>)}
           </button>
         </form>
-
-        {/* LOGIN ALT KISIM (Register & Forgot Password) */}
-        <div style={{borderTop:'1px solid #e2e8f0', paddingTop:'1rem', fontSize:'0.9rem', display:'flex', flexDirection:'column', gap:'0.5rem', alignItems:'center'}}>
+        <div style={{borderTop:'1px solid #e2e8f0', paddingTop:'1rem', fontSize:'0.9rem', display:'flex', flexDirection:'column', alignItems:'center', gap:'5px'}}>
           <div>
             <span style={{color:'#64748b'}}>{isRegistering ? 'Zaten hesabınız var mı?' : 'Hesabınız yok mu?'}</span>
-            <button
-              onClick={() => { setIsRegistering(!isRegistering); setUsername(''); setPassword(''); }}
-              className="btn-text"
-              style={{marginLeft:'5px', fontSize:'0.9rem'}}
-            >
+            <button onClick={() => { setIsRegistering(!isRegistering); setUsername(''); setPassword(''); }} className="btn-text" style={{marginLeft:'5px', fontSize:'0.9rem'}}>
               {isRegistering ? 'Giriş Yap' : 'Hemen Kayıt Ol'}
             </button>
           </div>
-
-          {!isRegistering && (
-            <button
-              onClick={handleForgotPassword}
-              className="btn-text"
-              style={{fontSize:'0.85rem', color:'#94a3b8', fontWeight:'500'}}
-            >
-              Şifremi Unuttum
-            </button>
-          )}
+          {!isRegistering && <button onClick={handleForgotPassword} className="btn-text" style={{fontSize:'0.85rem', color:'#94a3b8', fontWeight:500}}>Şifremi Unuttum</button>}
         </div>
       </div>
     </div>
   );
 
-  // --- MAIN RENDER ---
   return (
     <div className="app-container">
       <Toaster position="top-center"/>
@@ -310,8 +257,8 @@ function App() {
           <div style={{display:'flex', gap:'10px'}}>
             {view === 'dashboard' && (
               <>
-                <button onClick={() => setView('history')} className="btn btn-text" title="Geçmiş İşlemler"><Clock size={20}/> Geçmiş</button>
-                <button onClick={() => setView('settings')} className="btn btn-text" title="Yapılandırma"><Settings size={20}/> Ayarlar</button>
+                <button onClick={() => setView('history')} className="btn btn-text" title="Geçmiş"><Clock size={20}/> Geçmiş</button>
+                <button onClick={() => setView('settings')} className="btn btn-text" title="Ayarlar"><Settings size={20}/> Ayarlar</button>
               </>
             )}
             <button onClick={handleLogout} className="btn btn-text text-red" title="Güvenli Çıkış"><LogOut size={20}/></button>
@@ -320,23 +267,20 @@ function App() {
 
         {view === 'settings' ? (
           <div className="settings-view card" style={{animation: 'fadeIn 0.3s ease-out'}}>
-             <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>Sistem Ayarları</h2><p>API ve Entegrasyon Yapılandırması</p></div></div>
-
-             {/* TABS */}
+             <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>Sistem Ayarları</h2><p>API ve Güvenlik Yönetimi</p></div></div>
              <div className="settings-tabs">
                 <button className={`tab-btn ${settingsTab === 'api' ? 'active' : ''}`} onClick={() => setSettingsTab('api')}><Zap size={18}/> API Bağlantıları</button>
-                <button className={`tab-btn ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}>Güvenlik</button>
+                <button className={`tab-btn ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}><Shield size={18}/> Güvenlik</button>
              </div>
-
              {settingsTab === 'api' ? (
-                 <div className="settings-grid tab-content">
+                 <div className="settings-grid tab-content fade-in">
                     {Object.keys(settingsData).map(key => (
                        <div key={key} className="form-group"><label>{key.replace(/_/g, ' ')}</label><input className="form-input" type={key.includes('TOKEN') || key.includes('KEY') ? "password" : "text"} value={settingsData[key]} onChange={e => setSettingsData({...settingsData, [key]: e.target.value})} placeholder={`${key} giriniz...`}/></div>
                     ))}
                     <div style={{gridColumn: 'span 2', textAlign:'right'}}><button onClick={saveSettings} className="btn btn-primary" disabled={settingsLoading} style={{width:'160px'}}>{settingsLoading ? <Loader2 className="spinner"/> : <><Save size={18}/> Kaydet</>}</button></div>
                  </div>
              ) : (
-                 <div className="tab-content" style={{maxWidth:'400px'}}>
+                 <div className="tab-content fade-in" style={{maxWidth:'400px'}}>
                     <div className="form-group"><label>Mevcut Şifre</label><input type="password" className="form-input" value={passwordData.old} onChange={e => setPasswordData({...passwordData, old: e.target.value})}/></div>
                     <div className="form-group"><label>Yeni Şifre</label><input type="password" className="form-input" value={passwordData.new} onChange={e => setPasswordData({...passwordData, new: e.target.value})}/></div>
                     <div className="form-group"><label>Yeni Şifre (Tekrar)</label><input type="password" className="form-input" value={passwordData.confirm} onChange={e => setPasswordData({...passwordData, confirm: e.target.value})}/></div>
@@ -348,7 +292,7 @@ function App() {
           <div className="card" style={{animation: 'fadeIn 0.3s ease-out'}}>
              <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>İşlem Geçmişi</h2><p>Son yapılan aktarımlar</p></div></div>
              <div className="history-table-wrapper">
-               <table className="history-table"><thead><tr><th>Tarih</th><th>Task</th><th>Oluşturulan Case</th><th>Durum</th></tr></thead><tbody>{historyData.map(log => (<tr key={log.id}><td style={{color:'#64748b'}}>{log.date}</td><td style={{fontWeight:600}}>{log.task}</td><td>{log.case}</td><td><span className="status-badge-success">{log.status}</span></td></tr>))}</tbody></table>
+               <table className="history-table"><thead><tr><th>Tarih</th><th>Task</th><th>Case</th><th>Durum</th></tr></thead><tbody>{historyData.map(log => (<tr key={log.id}><td style={{color:'#64748b'}}>{log.date}</td><td style={{fontWeight:600}}>{log.task}</td><td>{log.case}</td><td><span className="status-badge-success">{log.status}</span></td></tr>))}</tbody></table>
              </div>
           </div>
         ) : (
