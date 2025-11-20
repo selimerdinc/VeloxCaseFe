@@ -5,8 +5,8 @@ import {
   Zap, FolderPlus, Check, ArrowRight, Settings, Clock,
   Image as ImageIcon, Loader2,
   PlusCircle, LogOut, Lock, Save, ArrowLeft, List, XCircle, UserPlus,
-  BarChart3, Calendar, Eye, EyeOff, Shield
-  // Mail silindi
+  BarChart3, Calendar, Eye, EyeOff, Shield,
+  Moon, Sun // EKSİK İKONLAR EKLENDİ
 } from 'lucide-react';
 import './App.css';
 
@@ -15,6 +15,22 @@ const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
 function App() {
   const [token, setToken] = useState(localStorage.getItem('qc_token'));
   const [view, setView] = useState('dashboard');
+
+  // --- DARK MODE STATE (EKLENDİ) ---
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem('qc_theme') === 'dark';
+  });
+
+  // DARK MODE EFFECT (EKLENDİ)
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark');
+      localStorage.setItem('qc_theme', 'dark');
+    } else {
+      document.body.classList.remove('dark');
+      localStorage.setItem('qc_theme', 'light');
+    }
+  }, [darkMode]);
 
   // AUTH STATE
   const [isRegistering, setIsRegistering] = useState(false);
@@ -67,7 +83,7 @@ function App() {
     if (token) axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }, [token]);
 
-  // --- DEBOUNCED PREVIEW ---
+  // DEBOUNCED PREVIEW
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (token && jiraInput.length > 5 && !jiraInput.includes(',')) {
@@ -75,19 +91,14 @@ function App() {
         try {
           const res = await axios.post(`${API_BASE_URL}/preview`, { task_key: jiraInput });
           setPreviewTask(res.data);
-        } catch {
-          setPreviewTask(null);
-        } finally {
-          setPreviewLoading(false);
-        }
-      } else {
-        setPreviewTask(null);
-      }
+        } catch { setPreviewTask(null); }
+        finally { setPreviewLoading(false); }
+      } else { setPreviewTask(null); }
     }, 800);
     return () => clearTimeout(delayDebounceFn);
   }, [jiraInput, token]);
 
-  // --- AUTH ---
+  // AUTH
   const handleAuth = async (e) => {
     e.preventDefault();
     if (!username || !password) return toast.error("Lütfen alanları doldurun.");
@@ -113,22 +124,6 @@ function App() {
     toast('Oturum kapatıldı.');
   };
 
-  const handleForgotPassword = () => {
-    toast((t) => (
-      <div style={{textAlign: 'center'}}>
-        <b>Geliştirici ile iletişime geçiniz:</b>
-        <br />
-        <a href="mailto:selim@selimerdinc.com" style={{color: '#4f46e5', textDecoration: 'underline', display: 'block', marginTop: '5px', fontWeight: 'bold'}}>
-          selim@selimerdinc.com
-        </a>
-      </div>
-    ), {
-      icon: '📧',
-      duration: 6000,
-      style: { background: '#fff', color: '#333', border: '1px solid #4f46e5', padding: '16px' },
-    });
-  };
-
   const fetchFolders = useCallback(async () => {
     if (!repoId || !token || view !== 'dashboard') return;
     setFoldersLoading(true);
@@ -146,16 +141,13 @@ function App() {
   }, [token, view]);
 
   useEffect(() => {
-    if(token && view === 'dashboard') {
-      fetchFolders();
-      fetchStats();
-    }
+    if(token && view === 'dashboard') { fetchFolders(); fetchStats(); }
   }, [fetchFolders, fetchStats, token, view]);
 
   useEffect(() => {
     if (view === 'history' && token) axios.get(`${API_BASE_URL}/history`).then(res => setHistoryData(res.data));
     if (view === 'settings' && token) axios.get(`${API_BASE_URL}/settings`).then(res => {
-      const { ...cleanData } = res.data; // Figma temizliği zaten backendde yapıldı
+      const { FIGMA_ACCESS_TOKEN, ...cleanData } = res.data;
       setSettingsData(cleanData);
     });
   }, [view, token]);
@@ -213,6 +205,15 @@ function App() {
     finally { setSettingsLoading(false); }
   };
 
+  const handleForgotPassword = () => {
+    toast((t) => (
+      <div style={{textAlign: 'center'}}>
+        <b>Geliştirici ile iletişime geçiniz:</b><br />
+        <a href="mailto:selim@selimerdinc.com" style={{color: '#4f46e5', textDecoration: 'underline', display: 'block', marginTop: '5px', fontWeight: 'bold'}}>selim@selimerdinc.com</a>
+      </div>
+    ), { icon: '📧', duration: 6000, style: { background: '#fff', color: '#333', border: '1px solid #4f46e5', padding: '16px' } });
+  };
+
   if (!token) return (
     <div className="app-container login-container">
       <Toaster position="top-center"/>
@@ -239,9 +240,9 @@ function App() {
             {authLoading ? <Loader2 className="spinner"/> : (isRegistering ? <><UserPlus size={18}/> Kayıt Ol</> : <><Lock size={18}/> Giriş Yap</>)}
           </button>
         </form>
-        <div style={{borderTop:'1px solid #e2e8f0', paddingTop:'1rem', fontSize:'0.9rem', display:'flex', flexDirection:'column', alignItems:'center', gap:'5px'}}>
+        <div style={{borderTop:'1px solid var(--border)', paddingTop:'1rem', fontSize:'0.9rem', display:'flex', flexDirection:'column', alignItems:'center', gap:'5px'}}>
           <div>
-            <span style={{color:'#64748b'}}>{isRegistering ? 'Zaten hesabınız var mı?' : 'Hesabınız yok mu?'}</span>
+            <span style={{color:'var(--text-secondary)'}}>{isRegistering ? 'Zaten hesabınız var mı?' : 'Hesabınız yok mu?'}</span>
             <button onClick={() => { setIsRegistering(!isRegistering); setUsername(''); setPassword(''); }} className="btn-text" style={{marginLeft:'5px', fontSize:'0.9rem'}}>
               {isRegistering ? 'Giriş Yap' : 'Hemen Kayıt Ol'}
             </button>
@@ -263,31 +264,35 @@ function App() {
             <div className="brand-text"><h1>VeloxCase</h1><p>Saniyeler İçinde Sync</p></div>
           </div>
           <div style={{display:'flex', gap:'10px'}}>
+
+            {/* YENİ: DARK MODE TOGGLE BUTONU */}
+            <button onClick={() => setDarkMode(!darkMode)} className="btn-icon" title={darkMode ? "Aydınlık Mod" : "Karanlık Mod"} style={{background:'transparent', border:'none', color:'var(--text-secondary)'}}>
+              {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+
             {view === 'dashboard' && (
               <>
                 <button onClick={() => setView('history')} className="btn btn-text" title="Geçmiş"><Clock size={20}/> Geçmiş</button>
-                <button onClick={() => setView('settings')} className="btn btn-text" title="Yapılandırma"><Settings size={20}/> Ayarlar</button>
+                <button onClick={() => setView('settings')} className="btn btn-text" title="Ayarlar"><Settings size={20}/> Ayarlar</button>
               </>
             )}
-            <button onClick={handleLogout} className="btn btn-text text-red" title="Güvenli Çıkış"><LogOut size={20}/></button>
+            <button onClick={handleLogout} className="btn btn-text text-red" title="Çıkış"><LogOut size={20}/></button>
           </div>
         </div>
 
         {view === 'settings' ? (
           <div className="settings-view card" style={{animation: 'fadeIn 0.3s ease-out'}}>
-             <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>Sistem Ayarları</h2><p>API ve Entegrasyon Yapılandırması</p></div></div>
-
+             <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>Sistem Ayarları</h2><p>API ve Güvenlik Yönetimi</p></div></div>
              <div className="settings-tabs">
                 <button className={`tab-btn ${settingsTab === 'api' ? 'active' : ''}`} onClick={() => setSettingsTab('api')}><Zap size={18}/> API Bağlantıları</button>
                 <button className={`tab-btn ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}><Shield size={18}/> Güvenlik</button>
              </div>
-
              {settingsTab === 'api' ? (
                  <div className="settings-grid tab-content fade-in">
                     {Object.keys(settingsData).map(key => (
                        <div key={key} className="form-group"><label>{key.replace(/_/g, ' ')}</label><input className="form-input" type={key.includes('TOKEN') || key.includes('KEY') ? "password" : "text"} value={settingsData[key]} onChange={e => setSettingsData({...settingsData, [key]: e.target.value})} placeholder={`${key} giriniz...`}/></div>
                     ))}
-                    <div style={{gridColumn: 'span 2', textAlign:'right'}}><button onClick={saveSettings} className="btn btn-primary" disabled={settingsLoading} style={{width:'160px'}}>{settingsLoading ? <Loader2 className="spinner"/> : <><Save size={18}/> Kaydet</>}</button></div>
+                    <div style={{gridColumn: 'span 2', textAlign:'right'}}><button onClick={saveSettings} className="btn btn-primary" disabled={settingsLoading} style={{width:'160px'}}>{settingsLoading ? <Loader2 className="spinner" size={20}/> : <><Save size={18}/> Kaydet</>}</button></div>
                  </div>
              ) : (
                  <div className="tab-content fade-in" style={{maxWidth:'400px'}}>
@@ -302,7 +307,7 @@ function App() {
           <div className="card" style={{animation: 'fadeIn 0.3s ease-out'}}>
              <div className="page-header"><button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button><div><h2>İşlem Geçmişi</h2><p>Son yapılan aktarımlar</p></div></div>
              <div className="history-table-wrapper">
-               <table className="history-table"><thead><tr><th>Tarih</th><th>Task</th><th>Oluşturulan Case</th><th>Durum</th></tr></thead><tbody>{historyData.map(log => (<tr key={log.id}><td style={{color:'#64748b'}}>{log.date}</td><td style={{fontWeight:600}}>{log.task}</td><td>{log.case}</td><td><span className="status-badge-success">{log.status}</span></td></tr>))}</tbody></table>
+               <table className="history-table"><thead><tr><th>Tarih</th><th>Task</th><th>Oluşturulan Case</th><th>Durum</th></tr></thead><tbody>{historyData.map(log => (<tr key={log.id}><td style={{color:'var(--text-secondary)'}}>{log.date}</td><td style={{fontWeight:600}}>{log.task}</td><td>{log.case}</td><td><span className="status-badge-success">{log.status}</span></td></tr>))}</tbody></table>
              </div>
           </div>
         ) : (
@@ -335,7 +340,7 @@ function App() {
 
               <div style={{display:'flex', gap:'12px', marginTop:'1rem'}}><div style={{flex:1}}><input className="form-input" placeholder="Örn: PROJ-123, PROJ-456" value={jiraInput} onChange={e=>setJiraInput(e.target.value)} style={{padding:'1rem', fontSize:'1.1rem', fontWeight:'600'}}/></div><button onClick={handleSync} disabled={loading} className="btn btn-primary" style={{width:'220px'}}>{loading ? <><Loader2 className="spinner" size={20}/> İşleniyor...</> : <><Zap size={20}/> Senkronize Et <ArrowRight size={20}/></>}</button></div><p className="helper-text" style={{marginTop:'1rem'}}>* Çoklu giriş için virgül ile ayırabilirsiniz.</p></div>
               {syncResults.length > 0 && (
-                <div className="result-card"><div className="result-header"><div className="success-icon-box" style={{background:'#f1f5f9', color:'#1e293b'}}><List size={24} strokeWidth={3}/></div><div><h3 className="result-title">İşlem Özeti</h3><div className="result-meta"><span className="meta-tag">Toplam: {syncResults.length} Kayıt</span></div></div></div><div className="case-list">{syncResults.map((res, idx) => (<div key={idx} className="case-item" style={{borderLeft: res.status==='success' ? '4px solid #22c55e' : '4px solid #ef4444'}}><div className="case-info">{res.status === 'success' ? <Check className="text-green" size={20}/> : <XCircle className="text-red" size={20}/>}<div><span className="case-name" style={{display:'block'}}>{res.task}</span><span style={{fontSize:'0.8rem', color:'#64748b'}}>{res.status === 'success' ? res.case_name : res.msg}</span></div></div>{res.status === 'success' && <div style={{display:'flex', alignItems:'center', gap:'8px'}}><span className="img-badge"><ImageIcon size={12}/> {res.images} Resim</span></div>}</div>))}</div></div>
+                <div className="result-card"><div className="result-header"><div className="success-icon-box" style={{background:'var(--bg-body)', color:'var(--text-main)'}}><List size={24} strokeWidth={3}/></div><div><h3 className="result-title">İşlem Özeti</h3><div className="result-meta"><span className="meta-tag">Toplam: {syncResults.length} Kayıt</span></div></div></div><div className="case-list">{syncResults.map((res, idx) => (<div key={idx} className="case-item" style={{borderLeft: res.status==='success' ? '4px solid #22c55e' : '4px solid #ef4444'}}><div className="case-info">{res.status === 'success' ? <Check className="text-green" size={20}/> : <XCircle className="text-red" size={20}/>}<div><span className="case-name" style={{display:'block'}}>{res.task}</span><span style={{fontSize:'0.8rem', color:'#64748b'}}>{res.status === 'success' ? res.case_name : res.msg}</span></div></div>{res.status === 'success' && <div style={{display:'flex', alignItems:'center', gap:'8px'}}><span className="img-badge"><ImageIcon size={12}/> {res.images} Resim</span></div>}</div>))}</div></div>
               )}
             </div>
           </div>
