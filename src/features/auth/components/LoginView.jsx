@@ -1,0 +1,110 @@
+// src/features/auth/components/LoginView.jsx
+
+import React from 'react';
+import { Toaster } from 'react-hot-toast';
+// Sun ve Moon ikonları eklendi
+import { Eye, EyeOff, Loader2, UserPlus, Lock, Sun, Moon } from 'lucide-react';
+import { useAuth } from '../useAuth';
+
+// YENİ: theme ve handleThemeToggle prop olarak alındı
+function LoginView({ theme, handleThemeToggle }) {
+    // Tüm Auth mantığını Hook'tan çekiyoruz.
+    const {
+        isRegistering, username, password, showPassword,
+        authLoading, errors, strengthScore,
+        handleAuth, handleForgotPassword,
+        setUsername, setPassword, setIsRegistering, setShowPassword
+    } = useAuth();
+
+    return (
+        <div className="app-container login-container">
+          <Toaster position="top-center" toastOptions={{style:{fontSize:'0.9rem', fontWeight:500}}}/>
+
+          {/* TEMA DEĞİŞTİRME BUTONU (YENİ) */}
+          <div style={{position: 'absolute', top: 30, right: 30}}>
+             <button onClick={handleThemeToggle} className="btn btn-text" title="Temayı Değiştir" style={{color: 'var(--text-main)'}}>
+                {theme === 'dark' ? <Sun size={24}/> : <Moon size={24}/>}
+            </button>
+          </div>
+
+          <div className="login-card">
+            <div className="login-header">
+               <img src="/logo.png" alt="VeloxCase" style={{height:60, marginBottom:16}} className="mx-auto"/>
+               <h1>VeloxCase</h1>
+               <p>{isRegistering ? 'Kurumsal Hesap Oluştur' : 'Yetkili Girişi'}</p>
+            </div>
+
+            <form onSubmit={handleAuth}>
+              <div className="form-group">
+                <label className="form-label">Kullanıcı Adı</label>
+                <input
+                  className={`form-input ${errors.username ? 'input-error' : ''}`}
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  placeholder="Erişim kimliğinizi giriniz"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Parola</label>
+                <div className="input-wrapper">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className={`form-input ${errors.password ? 'input-error' : ''}`}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    style={{paddingRight: '40px'}}
+                  />
+                  <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff size={18}/> : <Eye size={18}/>}
+                  </button>
+                </div>
+
+                {/* Hata Mesajları */}
+                {errors.password && <p className="helper-text text-red" style={{color:'#ef4444'}}>Lütfen parolanızı giriniz.</p>}
+                {errors.username && !errors.password && <p className="helper-text text-red" style={{color:'#ef4444'}}>Lütfen kullanıcı adınızı giriniz.</p>}
+
+                {isRegistering && password.length > 0 && (
+                  <div className="strength-meter">
+                    <div className="strength-bar" style={{
+                      width: `${strengthScore}%`,
+                      backgroundColor: strengthScore < 50 ? '#ef4444' : strengthScore < 75 ? '#eab308' : '#22c55e'
+                    }}></div>
+                  </div>
+                )}
+              </div>
+
+              <button type="submit" className="btn btn-primary" disabled={authLoading} style={{width:'100%', marginBottom:'1rem'}}>
+                {authLoading ? <Loader2 className="spinner"/> : (isRegistering ? <><UserPlus size={18}/> Kaydı Tamamla</> : <><Lock size={18}/> Güvenli Giriş</>)}
+              </button>
+            </form>
+
+            <div style={{borderTop:'1px solid var(--border)', paddingTop:'1rem', fontSize:'0.9rem', display:'flex', flexDirection:'column', alignItems:'center', gap:'8px'}}>
+              <div>
+                <span style={{color:'var(--text-secondary)'}}>{isRegistering ? 'Zaten hesabınız var mı?' : 'Hesabınız yok mu?'}</span>
+                <button
+                  onClick={() => setIsRegistering(!isRegistering)}
+                  className="btn-text"
+                  style={{marginLeft:'5px', fontSize:'0.9rem'}}
+                >
+                  {isRegistering ? 'Giriş Yap' : 'Hemen Kayıt Ol'}
+                </button>
+              </div>
+
+              {!isRegistering && (
+                <button
+                  onClick={handleForgotPassword}
+                  className="btn-text"
+                  style={{fontSize:'0.85rem', color:'var(--text-secondary)', fontWeight:500}}
+                >
+                  Şifremi Unuttum
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+    );
+}
+
+export default LoginView;
