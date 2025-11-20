@@ -72,7 +72,7 @@ function App() {
 
         {/* HEADER */}
         <div className="header-card">
-          <div className="header-brand"><img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/><div className="brand-text"><h1>VeloxCase</h1><p>Kurumsal Test Entegrasyon Platformu</p></div></div>
+          <div className="header-brand"><img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/><div className="brand-text"><h1>VeloxCase</h1><p>Saniyeler İçinde Sync</p></div></div>
           <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
 
             <button onClick={handleThemeToggle} className="btn btn-text" title="Temayı Değiştir" style={{color: 'var(--text-main)'}}>
