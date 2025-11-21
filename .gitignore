@@ -48,4 +48,4 @@ data/
 is-verileri-analizi-*.json
 
 # Docker
-docker-compose.override.yml
+docker-compose.override.ymlnode_modules/
