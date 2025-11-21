@@ -9,7 +9,7 @@ const API_BASE_URL = 'https://quickcase-api.onrender.com/api';
 /**
  * useDashboard: Dashboard ekranının tüm veri yönetimi ve iş mantığını yönetir.
  */
-export const useDashboard = (token, currentView, onLogout, setView) => {
+export const useDashboard = (token, currentView, onLogout, navigate) => {
     // --- DASHBOARD STATE'leri ---
     const [repoId, setRepoId] = useState(1);
     const [folders, setFolders] = useState([]);
@@ -21,12 +21,16 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     const [showNewFolder, setShowNewFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
 
-    // YENİ: Dashboard Input Hata State'i (newFolderName eklendi)
+    // YENİ: Dashboard Input Hata State'i
     const [dashboardErrors, setDashboardErrors] = useState({
         jiraInput: false,
         selectedFolder: false,
         newFolderName: false
     });
+
+    // YENİ: Duplicate (Aynı Kayıt) Yönetimi İçin State'ler
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [duplicateItem, setDuplicateItem] = useState(null);
 
     // --- PREVIEW STATE ---
     const [previewTask, setPreviewTask] = useState(null);
@@ -42,7 +46,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     const [passwordErrors, setPasswordErrors] = useState({ old: false, new: false, confirm: false });
 
 
-    // --- VERİ ÇEKME İŞLEVLERİ (Aynı kalır) ---
+    // --- VERİ ÇEKME İŞLEVLERİ ---
     const fetchFolders = useCallback(async () => {
         if (!repoId || !token || currentView !== 'dashboard') return;
         setFoldersLoading(true);
@@ -50,7 +54,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
             const res = await axios.get(`${API_BASE_URL}/folders/${repoId}`);
             let list = res.data.folders || [];
 
-            // GÜNCELLEME 1: Alfabetik (Türkçe) Sıralama
+            // Alfabetik (Türkçe) Sıralama
             list.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
 
             setFolders(list);
@@ -72,7 +76,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     }, [token, currentView]);
 
 
-    // --- YAN ETKİLER (USE EFFECT - Aynı kalır) ---
+    // --- YAN ETKİLER (USE EFFECT) ---
     useEffect(() => {
         if(token && currentView === 'dashboard') {
             fetchFolders();
@@ -86,6 +90,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         }
         if (currentView === 'settings' && token) {
             axios.get(`${API_BASE_URL}/settings`).then(res => {
+                // eslint-disable-next-line no-unused-vars
                 const { ...cleanData } = res.data;
                 setSettingsData(cleanData);
             });
@@ -115,7 +120,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
 
     // --- İŞLEVLER: CRUD/AKSYONLAR ---
 
-    // Senkronizasyon Başlatma
+    // 1. Senkronizasyon Başlatma (GÜNCELLENDİ: Duplicate Kontrolü)
     const handleSync = async () => {
         const newErrors = {
             jiraInput: !jiraInput || jiraInput.trim() === '',
@@ -129,29 +134,88 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
 
         setLoading(true); setSyncResults([]);
         const tId = toast.loading('Entegrasyon başlatıldı, veriler işleniyor...');
+
         try {
-            const res = await axios.post(`${API_BASE_URL}/sync`, { jira_input: jiraInput, folder_id: selectedFolder, project_id: repoId });
-            setSyncResults(res.data.results || []);
-            const success = res.data.results.filter(r => r.status === 'success').length;
-            const failed = res.data.results.length - success;
-            if (success > 0) {
-                toast.success(`İşlem Tamamlandı! ${success} kayıt başarıyla aktarıldı. ${failed > 0 ? `(${failed} tanesi hata verdi.)` : ''}`, { id: tId, duration: 8000 });
-                setJiraInput('');
-                fetchStats();
-                setTimeout(() => setSyncResults([]), 10000);
+            const res = await axios.post(`${API_BASE_URL}/sync`, {
+                jira_input: jiraInput,
+                folder_id: selectedFolder,
+                project_id: repoId
+            });
+
+            const results = res.data.results || [];
+            setSyncResults(results);
+
+            // --- DUPLICATE KONTROLÜ ---
+            const duplicate = results.find(r => r.status === 'duplicate');
+
+            if (duplicate) {
+                // Duplicate varsa modalı aç, loading'i kapat (kullanıcı karar verecek)
+                setDuplicateItem(duplicate);
+                setShowDuplicateModal(true);
+                toast.dismiss(tId);
             } else {
-                toast.error("Tüm görev anahtarları işlenirken hata oluştu. Lütfen girişleri kontrol edin.", { id: tId });
+                // Duplicate yoksa normal başarı akışı
+                const success = results.filter(r => r.status === 'success').length;
+                const failed = results.length - success;
+
+                if (success > 0) {
+                    toast.success(`İşlem Tamamlandı! ${success} kayıt başarıyla aktarıldı. ${failed > 0 ? `(${failed} hata)` : ''}`, { id: tId, duration: 5000 });
+                    setJiraInput('');
+                    fetchStats();
+                } else {
+                    toast.error("İşlem sırasında hata oluştu.", { id: tId });
+                }
             }
         } catch (err) {
-            toast.error("Sunucu ile iletişim kurulamadı. Lütfen API bağlantılarınızı kontrol edin.", { id: tId });
+            toast.error("Sunucu ile iletişim kurulamadı.", { id: tId });
         } finally {
             setLoading(false);
         }
     };
 
-    // Yeni Klasör Oluşturma (GÜNCELLENDİ: Hata Yönetimi Eklendi)
+    // 2. Force Update (Kullanıcı "Evet, Güncelle" dediğinde çalışır)
+    const handleForceUpdate = async () => {
+        if (!duplicateItem) return;
+
+        setShowDuplicateModal(false); // Modalı kapat
+        setLoading(true);
+        const tId = toast.loading('Güncelleme yapılıyor...');
+
+        try {
+            // force_update: true parametresi ile tekrar istek atıyoruz
+            const res = await axios.post(`${API_BASE_URL}/sync`, {
+                jira_input: duplicateItem.task,
+                folder_id: selectedFolder,
+                project_id: repoId,
+                force_update: true // <--- Backend bu bayrağı görünce güncelleyecek
+            });
+
+            const newResult = res.data.results[0]; // Tek task olduğu için ilk sonucu al
+
+            // Listeyi güncelle: Eski duplicate satırını sil, yeni sonucu ekle
+            setSyncResults(prev => [
+                newResult,
+                ...prev.filter(r => r.task !== duplicateItem.task)
+            ]);
+
+            if (newResult.status === 'success') {
+                toast.success(`Case Başarıyla Güncellendi: ${newResult.case_name}`, { id: tId });
+                fetchStats();
+            } else {
+                toast.error("Güncelleme başarısız oldu.", { id: tId });
+            }
+
+        } catch (err) {
+            toast.error("Güncelleme sırasında hata oluştu.", { id: tId });
+        } finally {
+            setLoading(false);
+            setDuplicateItem(null);
+        }
+    };
+
+    // 3. Yeni Klasör Oluşturma
     const handleCreateFolder = async () => {
-        // 1. Boşluk kontrolü
+        // Boşluk kontrolü
         if (!newFolderName || newFolderName.trim() === '') {
             setDashboardErrors(e => ({...e, newFolderName: true}));
             return toast.error("Lütfen klasör adı giriniz.");
@@ -159,33 +223,29 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
 
         const finalName = newFolderName.trim();
 
-        // --- YENİ EKLENEN KISIM: AYNI İSİM KONTROLÜ ---
-        // Klasör listesinde aynı isimde (büyük/küçük harf önemsemeden) klasör var mı?
+        // İsim Tekrarı Kontrolü (Frontend)
         const isDuplicate = folders.some(
             f => f.name.toLowerCase() === finalName.toLowerCase()
         );
 
         if (isDuplicate) {
             setDashboardErrors(e => ({...e, newFolderName: true}));
-            // Kullanıcıya uyarı ver ve işlemi durdur (Backend'e gitme)
             return toast.error("Bu isimde bir klasör zaten mevcut!", { icon: '⚠️' });
         }
-        // ------------------------------------------------
 
         try {
             const res = await axios.post(`${API_BASE_URL}/folders/${repoId}`, { name: finalName, parent_id: selectedFolder || null });
 
-            // ID kontrolü (API yapına göre değişebilir, res.data.id veya res.data.data.id)
             const newFolderId = res.data.id || res.data.data?.id;
 
-            // Listeyi güncelle ve sıralama mantığını uygula (Önceki adımda yaptığımız mantık)
+            // Listeyi güncelle ve sırala
             const listRes = await axios.get(`${API_BASE_URL}/folders/${repoId}`);
             let allFolders = listRes.data.folders || [];
 
             const createdFolderObj = allFolders.find(f => f.id === newFolderId) || { id: newFolderId, name: finalName };
             const otherFolders = allFolders.filter(f => f.id !== newFolderId);
 
-            // Diğerlerini A-Z sırala
+            // A-Z Sırala
             otherFolders.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
 
             // Yeni klasörü en başa ekle
@@ -205,13 +265,14 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         }
     };
 
-    // Ayarları Kaydetme
+    // 4. Ayarları Kaydetme
     const saveSettings = async () => {
         setSettingsLoading(true);
         try {
             await axios.post(`${API_BASE_URL}/settings`, settingsData);
             toast.success("Yapılandırma ayarları başarıyla güncellendi.", { icon: '💾' });
-            setTimeout(() => setView('dashboard'), 1000);
+            // Ayarlar kaydedilince Dashboard'a dön (Opsiyonel, navigate kullanarak)
+            setTimeout(() => navigate('/'), 1000);
         } catch {
             toast.error("Ayarlar kaydedilemedi. Lütfen tüm alanların doğru olduğundan emin olun.");
         } finally {
@@ -219,7 +280,7 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         }
     };
 
-    // Şifre Değiştirme
+    // 5. Şifre Değiştirme
     const handleChangePassword = async () => {
         setPasswordErrors({ old: false, new: false, confirm: false });
 
@@ -266,13 +327,14 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
     // --- KAPSÜLLENMİŞ ARAYÜZ (RETURN) ---
     return {
         // State'ler
-        repoId, folders, selectedFolder, jiraInput, loading, foldersLoading,
-        syncResults, showNewFolder, newFolderName, previewTask, previewLoading,
-        settingsData, settingsLoading, historyData, stats, settingsTab, passwordData,
-        passwordErrors,
-        dashboardErrors,
+        repoId, folders, selectedFolder, jiraInput, loading, foldersLoading, syncResults,
+        showNewFolder, newFolderName, previewTask, previewLoading, settingsData, settingsLoading,
+        historyData, stats, settingsTab, passwordData, passwordErrors, dashboardErrors,
 
-        // Setters (Input/Select güncellenince hatayı temizleme mantığı)
+        // YENİ STATE'LER
+        showDuplicateModal, duplicateItem,
+
+        // Setters
         setRepoId,
         setSelectedFolder: (value) => {
             setSelectedFolder(value);
@@ -284,14 +346,14 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         },
         setNewFolderName: (value) => {
             setNewFolderName(value);
-            // Kullanıcı yazmaya başladığında kırmızılığı kaldır
             if (dashboardErrors.newFolderName) setDashboardErrors(e => ({...e, newFolderName: false}));
         },
         setShowNewFolder, setSettingsData, setSettingsTab, setPasswordData,
-        setPasswordErrors,
+        setPasswordErrors, setShowDuplicateModal,
 
         // İşlevler
         handleSync, handleCreateFolder, saveSettings, handleChangePassword,
+        handleForceUpdate, // <--- DIŞARI AÇIYORUZ
         fetchFolders, fetchStats
     };
 };

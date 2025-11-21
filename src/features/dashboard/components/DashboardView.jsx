@@ -3,10 +3,9 @@
 import React from 'react';
 import {
   Zap, FolderPlus, ArrowRight, Image as ImageIcon, Loader2,
-  PlusCircle, List, XCircle, BarChart3, Calendar, Check
+  PlusCircle, List, XCircle, BarChart3, Calendar, Check, AlertTriangle
 } from 'lucide-react';
 
-// Prop'lar: useDashboard hook'undan gelen tüm değerler
 function DashboardView(props) {
     const {
         stats, repoId, setRepoId,
@@ -14,12 +13,39 @@ function DashboardView(props) {
         showNewFolder, setShowNewFolder, newFolderName, setNewFolderName, handleCreateFolder,
         jiraInput, setJiraInput, previewTask, previewLoading,
         loading, handleSync, syncResults,
-        dashboardErrors // Dashboard Hataları
+        dashboardErrors,
+        // YENİ PROP'LAR
+        showDuplicateModal, setShowDuplicateModal, duplicateItem, handleForceUpdate
     } = props;
 
     return (
         <>
-          {/* 1. STATS GRID */}
+          {/* --- DUPLICATE MODAL --- */}
+          {showDuplicateModal && duplicateItem && (
+            <div className="modal-overlay">
+                <div className="modal-card">
+                    <div className="modal-header">
+                        <div className="icon-box-warning"><AlertTriangle size={24} /></div>
+                        <h3>Kayıt Zaten Mevcut</h3>
+                    </div>
+                    <div className="modal-body">
+                        <p><strong>{duplicateItem.case_name}</strong></p>
+                        <p>Bu case, seçili klasörde zaten bulunuyor.</p>
+                        <p>Mevcut kaydın üzerine yazmak (güncellemek) ister misiniz?</p>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-text" onClick={() => setShowDuplicateModal(false)}>
+                            İptal Et
+                        </button>
+                        <button className="btn btn-primary" onClick={handleForceUpdate} disabled={loading}>
+                            {loading ? <Loader2 className="spinner"/> : 'Evet, Güncelle'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+          )}
+
+          {/* MEVCUT KODLAR */}
           <div className="stats-grid">
              <div className="stat-card"><div className="stat-icon bg-blue"><BarChart3 size={24} color="#2563eb"/></div><div className="stat-info"><h3>{stats.total_cases || 0}</h3><p>Toplam Senaryo</p></div></div>
              <div className="stat-card"><div className="stat-icon bg-purple"><ImageIcon size={24} color="#9333ea"/></div><div className="stat-info"><h3>{stats.total_images || 0}</h3><p>İşlenen Görsel</p></div></div>
@@ -27,21 +53,17 @@ function DashboardView(props) {
           </div>
 
           <div className="grid-layout">
-            {/* 2. SIDEBAR */}
+            {/* SIDEBAR */}
             <div className="sidebar">
-              {/* Repo ID */}
               <div className="card"><div className="form-group"><label className="form-label">Depo Kimliği (Repository ID)</label><input type="number" className="form-input" value={repoId} onChange={e=>setRepoId(e.target.value)}/></div></div>
 
-              {/* Hedef Klasör */}
               <div className="card">
                 <div className="form-group">
                   <label className="form-label" style={{display:'flex', justifyContent:'space-between'}}>Hedef Klasör <button onClick={()=>setShowNewFolder(!showNewFolder)} className="btn-text"><FolderPlus size={16}/> Yeni</button></label>
 
-                  {/* Yeni Klasör Oluşturma Alanı (GÜNCELLENDİ) */}
                   {showNewFolder && (
                     <div className="new-folder-wrapper">
                       <input
-                        // Hata durumunda kırmızı çerçeve ekle
                         className={`form-input ${dashboardErrors.newFolderName ? 'input-error' : ''}`}
                         placeholder="Klasör adı..."
                         value={newFolderName}
@@ -51,7 +73,6 @@ function DashboardView(props) {
                     </div>
                   )}
 
-                  {/* Klasör Seçimi */}
                   <div className="input-container">
                     <select
                         className={`form-select ${dashboardErrors.selectedFolder ? 'input-error' : ''}`}
@@ -68,12 +89,11 @@ function DashboardView(props) {
               </div>
             </div>
 
-            {/* 3. CONTENT AREA */}
+            {/* CONTENT AREA */}
             <div className="content-area">
               <div className="card">
                 <label className="form-label" style={{fontSize:'1.1rem'}}>Jira Task Listesi</label>
 
-                {/* Preview Card */}
                 {previewLoading ? (
                     <div className="preview-card"><Loader2 className="spinner" size={20}/> Önizleme yükleniyor...</div>
                 ) : previewTask && (
@@ -83,7 +103,6 @@ function DashboardView(props) {
                   </div>
                 )}
 
-                {/* Sync Input & Button */}
                 <div style={{display:'flex', gap:'12px', marginTop:'1rem'}}>
                   <div style={{flex:1}}>
                     <input
@@ -111,12 +130,17 @@ function DashboardView(props) {
                     </div>
                     <div className="case-list">
                         {syncResults.map((res, idx) => (
-                            <div key={idx} className="case-item" style={{borderLeft: res.status==='success' ? '4px solid #22c55e' : '4px solid #ef4444'}}>
+                            <div key={idx} className="case-item"
+                                 style={{borderLeft: res.status==='success' ? '4px solid #22c55e' : (res.status==='duplicate' ? '4px solid #f59e0b' : '4px solid #ef4444')}}>
                                 <div className="case-info">
-                                    {res.status === 'success' ? <Check className="text-green" size={20}/> : <XCircle className="text-red" size={20}/>}
+                                    {res.status === 'success' ? <Check className="text-green" size={20}/> :
+                                     res.status === 'duplicate' ? <AlertTriangle className="text-warning" size={20} color="#f59e0b"/> :
+                                     <XCircle className="text-red" size={20}/>}
                                     <div>
                                         <span className="case-name" style={{display:'block'}}>{res.task}</span>
-                                        <span style={{fontSize:'0.8rem', color:'#64748b'}}>{res.status === 'success' ? res.case_name : res.msg}</span>
+                                        <span style={{fontSize:'0.8rem', color:'#64748b'}}>
+                                            {res.status === 'success' ? (res.action === 'updated' ? 'Güncellendi' : res.case_name) : res.msg}
+                                        </span>
                                     </div>
                                 </div>
                                 {res.status === 'success' && <div style={{display:'flex', alignItems:'center', gap:'8px'}}><span className="img-badge"><ImageIcon size={12}/> {res.images} Resim</span></div>}
