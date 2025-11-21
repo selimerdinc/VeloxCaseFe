@@ -48,7 +48,12 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
         setFoldersLoading(true);
         try {
             const res = await axios.get(`${API_BASE_URL}/folders/${repoId}`);
-            setFolders(res.data.folders || []);
+            let list = res.data.folders || [];
+
+            // GÜNCELLEME 1: Alfabetik (Türkçe) Sıralama
+            list.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
+
+            setFolders(list);
         } catch (err) {
             if(err.response?.status === 401) onLogout();
         } finally {
@@ -146,28 +151,56 @@ export const useDashboard = (token, currentView, onLogout, setView) => {
 
     // Yeni Klasör Oluşturma (GÜNCELLENDİ: Hata Yönetimi Eklendi)
     const handleCreateFolder = async () => {
-        // Boşluk kontrolü ve Hata Set Etme
+        // 1. Boşluk kontrolü
         if (!newFolderName || newFolderName.trim() === '') {
             setDashboardErrors(e => ({...e, newFolderName: true}));
             return toast.error("Lütfen klasör adı giriniz.");
         }
 
-        try {
-            const res = await axios.post(`${API_BASE_URL}/folders/${repoId}`, { name: newFolderName, parent_id: selectedFolder || null });
-            await fetchFolders();
-            if(res.data?.id) setSelectedFolder(res.data.id);
+        const finalName = newFolderName.trim();
 
-            // Başarılı: Temizle
+        // --- YENİ EKLENEN KISIM: AYNI İSİM KONTROLÜ ---
+        // Klasör listesinde aynı isimde (büyük/küçük harf önemsemeden) klasör var mı?
+        const isDuplicate = folders.some(
+            f => f.name.toLowerCase() === finalName.toLowerCase()
+        );
+
+        if (isDuplicate) {
+            setDashboardErrors(e => ({...e, newFolderName: true}));
+            // Kullanıcıya uyarı ver ve işlemi durdur (Backend'e gitme)
+            return toast.error("Bu isimde bir klasör zaten mevcut!", { icon: '⚠️' });
+        }
+        // ------------------------------------------------
+
+        try {
+            const res = await axios.post(`${API_BASE_URL}/folders/${repoId}`, { name: finalName, parent_id: selectedFolder || null });
+
+            // ID kontrolü (API yapına göre değişebilir, res.data.id veya res.data.data.id)
+            const newFolderId = res.data.id || res.data.data?.id;
+
+            // Listeyi güncelle ve sıralama mantığını uygula (Önceki adımda yaptığımız mantık)
+            const listRes = await axios.get(`${API_BASE_URL}/folders/${repoId}`);
+            let allFolders = listRes.data.folders || [];
+
+            const createdFolderObj = allFolders.find(f => f.id === newFolderId) || { id: newFolderId, name: finalName };
+            const otherFolders = allFolders.filter(f => f.id !== newFolderId);
+
+            // Diğerlerini A-Z sırala
+            otherFolders.sort((a, b) => a.name.localeCompare(b.name, 'tr', { sensitivity: 'base' }));
+
+            // Yeni klasörü en başa ekle
+            setFolders([createdFolderObj, ...otherFolders]);
+
+            if(newFolderId) setSelectedFolder(newFolderId);
+
             setNewFolderName('');
             setShowNewFolder(false);
             setDashboardErrors(e => ({...e, newFolderName: false}));
 
-            toast.success(`Klasör başarıyla oluşturuldu: ${newFolderName}`, { icon: '📁' });
+            toast.success(`Klasör başarıyla oluşturuldu: ${finalName}`, { icon: '📁' });
         } catch (err) {
-            // Hata: Input'u kırmızı yap
             setDashboardErrors(e => ({...e, newFolderName: true}));
-
-            const msg = err.response?.data?.msg || "Klasör oluşturma hatası. Aynı isimde bir klasör olabilir.";
+            const msg = err.response?.data?.msg || "Klasör oluşturma hatası.";
             toast.error(msg);
         }
     };
