@@ -1,13 +1,15 @@
-// src/features/dashboard/components/HistoryView.jsx
-
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // <--- YENİ
 
-function HistoryView({ historyData, setView }) {
+function HistoryView({ historyData }) {
+    const navigate = useNavigate(); // <--- Hook
+
     return (
         <div className="card" style={{animation: 'fadeIn 0.3s ease-out'}}>
             <div className="page-header">
-                <button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button>
+                {/* navigate(-1) bir önceki sayfaya götürür veya ('/') ana sayfaya */}
+                <button onClick={()=>navigate('/')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button>
                 <div><h2>İşlem Geçmişi</h2><p>Son yapılan aktarımlar</p></div>
             </div>
             <div className="history-table-wrapper">

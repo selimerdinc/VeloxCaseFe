@@ -1,30 +1,31 @@
-// src/features/settings/components/SettingsView.jsx
-
 import React from 'react';
 import { ArrowLeft, Zap, Shield, Loader2, Save, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // <--- YENİ
 
 function SettingsView(props) {
     const {
         settingsTab, setSettingsTab, settingsData, setSettingsData,
         saveSettings, settingsLoading, passwordData, setPasswordData,
-        handleChangePassword, setView,
-        passwordErrors // useDashboard'dan gelen Hata State'i
+        handleChangePassword,
+        passwordErrors
     } = props;
+
+    const navigate = useNavigate(); // <--- Hook
 
     return (
         <div className="settings-view card" style={{animation: 'fadeIn 0.3s ease-out'}}>
              <div className="page-header">
-                 <button onClick={()=>setView('dashboard')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button>
+                 <button onClick={()=>navigate('/')} className="btn-back"><ArrowLeft size={20}/> Geri Dön</button>
                  <div><h2>Sistem Ayarları</h2><p>API ve Güvenlik Yönetimi</p></div>
              </div>
 
-             {/* Sekmeler (Tabs) */}
+             {/* Sekmeler */}
              <div className="settings-tabs">
                 <button className={`tab-btn ${settingsTab === 'api' ? 'active' : ''}`} onClick={() => setSettingsTab('api')}><Zap size={18}/> API Bağlantıları</button>
                 <button className={`tab-btn ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}><Shield size={18}/> Güvenlik</button>
              </div>
 
-             {/* API Ayarları (Aynı Kalır) */}
+             {/* İçerik aynı kalıyor... */}
              {settingsTab === 'api' ? (
                  <div className="settings-grid tab-content fade-in">
                     {Object.keys(settingsData).map(key => (
@@ -46,8 +47,6 @@ function SettingsView(props) {
                     </div>
                  </div>
              ) : (
-
-             /* Güvenlik Ayarları (Şifre Değiştirme - Hata Borderı Eklendi) */
                  <div className="tab-content fade-in" style={{maxWidth:'400px'}}>
                     <div className="form-group">
                         <label>Mevcut Şifre</label>
@@ -55,7 +54,7 @@ function SettingsView(props) {
                             type="password"
                             className={`form-input ${passwordErrors.old ? 'input-error' : ''}`}
                             value={passwordData.old}
-                            onChange={e => setPasswordData({...passwordData, old: e.target.value, confirm: false})} // Hata Temizleme (UX)
+                            onChange={e => setPasswordData({...passwordData, old: e.target.value, confirm: false})}
                         />
                     </div>
                     <div className="form-group">
@@ -64,7 +63,7 @@ function SettingsView(props) {
                             type="password"
                             className={`form-input ${passwordErrors.new ? 'input-error' : ''}`}
                             value={passwordData.new}
-                            onChange={e => setPasswordData({...passwordData, new: e.target.value, confirm: false})} // Hata Temizleme (UX)
+                            onChange={e => setPasswordData({...passwordData, new: e.target.value, confirm: false})}
                         />
                     </div>
                     <div className="form-group">
@@ -73,7 +72,7 @@ function SettingsView(props) {
                             type="password"
                             className={`form-input ${passwordErrors.confirm ? 'input-error' : ''}`}
                             value={passwordData.confirm}
-                            onChange={e => setPasswordData({...passwordData, confirm: e.target.value, new: false})} // Hata Temizleme (UX)
+                            onChange={e => setPasswordData({...passwordData, confirm: e.target.value, new: false})}
                         />
                     </div>
                     <button onClick={handleChangePassword} className="btn btn-primary" disabled={settingsLoading} style={{width:'100%', marginTop:'10px'}}>

@@ -1,8 +1,7 @@
-// src/App.jsx
-
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'; // <--- Router Hookları
 import { Toaster } from 'react-hot-toast';
-import { Settings, Clock, LogOut, Sun, Moon, Loader2 } from 'lucide-react';
+import { Settings, Clock, LogOut, Sun, Moon, Loader2, LayoutDashboard } from 'lucide-react';
 import './App.css';
 
 // Hook'lar
@@ -23,37 +22,36 @@ const getInitialTheme = () => {
 }
 
 function App() {
-  // 1. GLOBAL STATE
-  const [view, setView] = useState('dashboard');
   const [theme, setTheme] = useState(getInitialTheme);
 
-  // 2. GLOBAL MANTIK KATMANI
-  // useAuth'u BİR KERE burada çağırıyoruz ve sonucunu bir objeye atıyoruz.
-  const authLogic = useAuth();
+  // Router Hookları
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Token ve diğer değerleri bu objeden alıyoruz
+  // Auth Logic
+  const authLogic = useAuth();
   const { token, handleLogout, authKey, isInitialized } = authLogic;
 
-  const dashboardLogic = useDashboard(token, view, handleLogout, setView);
+  // Dashboard Logic (view yerine location.pathname kullanıyoruz)
+  // pathname: '/' ise 'dashboard', '/settings' ise 'settings' gibi mapliyoruz.
+  const currentView = location.pathname === '/' ? 'dashboard' : location.pathname.replace('/', '');
+
+  const dashboardLogic = useDashboard(token, currentView, handleLogout, navigate); // setView yerine navigate gönderdik
 
   const handleThemeToggle = () => { setTheme(t => (t === 'light' ? 'dark' : 'light')); };
 
   useEffect(() => { document.body.className = theme === 'dark' ? 'dark-mode' : ''; localStorage.setItem('theme', theme); }, [theme]);
 
-
-  // --- YÜKLENİYOR EKRANI ---
+  // --- YÜKLENİYOR ---
   if (!isInitialized) {
     return (
       <div className="app-container" style={{justifyContent: 'center', alignItems: 'center'}}>
         <Loader2 className="spinner" size={36} color="var(--primary)"/>
-        <p style={{marginTop: '1rem', color: 'var(--text-secondary)'}}>Sistem yükleniyor...</p>
       </div>
     );
   }
 
-  // --- RENDER: LOGIN ---
-  // EĞER TOKEN YOKSA LOGINVIEW GÖSTER
-  // ÖNEMLİ: authLogic'in tamamını (...authLogic) prop olarak gönderiyoruz!
+  // --- LOGIN ---
   if (!token) {
       return (
         <LoginView
@@ -64,7 +62,7 @@ function App() {
       );
   }
 
-  // --- RENDER: MAIN APP ---
+  // --- MAIN APP ---
   return (
     <div className="app-container" key={authKey}>
       <Toaster position="top-center" toastOptions={{duration: 4000, style:{fontSize:'0.9rem', fontWeight:500}}}/>
@@ -72,26 +70,44 @@ function App() {
 
         {/* HEADER */}
         <div className="header-card">
-          <div className="header-brand"><img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/><div className="brand-text"><h1>VeloxCase</h1><p>Saniyeler İçinde Sync</p></div></div>
-          <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
+          <div className="header-brand" style={{cursor:'pointer'}} onClick={() => navigate('/')}>
+             <img src="/logo.png" alt="VeloxCase" style={{height:40, marginRight:15}}/>
+             <div className="brand-text"><h1>VeloxCase</h1><p>Saniyeler İçinde Sync</p></div>
+          </div>
 
-            <button onClick={handleThemeToggle} className="btn btn-text" title="Temayı Değiştir" style={{color: 'var(--text-main)'}}>
+          <div style={{display:'flex', gap:'10px', alignItems: 'center'}}>
+            <button onClick={handleThemeToggle} className="btn btn-text" title="Temayı Değiştir">
                 {theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}
             </button>
 
-            {view === 'dashboard' && (<><button onClick={() => setView('history')} className="btn btn-text" title="Geçmiş İşlemler"><Clock size={18}/> Geçmiş</button><button onClick={() => setView('settings')} className="btn btn-text" title="Sistem Ayarları"><Settings size={18}/> Ayarlar</button></>)}
-            <button onClick={handleLogout} className="btn btn-text text-red" title="Güvenli Çıkış"><LogOut size={20}/></button>
+            {/* Navigasyon Butonları (Artık Link Gibi Çalışıyor) */}
+            <button onClick={() => navigate('/')} className={`btn btn-text ${location.pathname === '/' ? 'text-primary' : ''}`} title="Panel">
+                <LayoutDashboard size={18}/> Panel
+            </button>
+            <button onClick={() => navigate('/history')} className={`btn btn-text ${location.pathname === '/history' ? 'text-primary' : ''}`} title="Geçmiş">
+                <Clock size={18}/> Geçmiş
+            </button>
+            <button onClick={() => navigate('/settings')} className={`btn btn-text ${location.pathname === '/settings' ? 'text-primary' : ''}`} title="Ayarlar">
+                <Settings size={18}/> Ayarlar
+            </button>
+
+            <div style={{width:1, height:20, background:'var(--border)', margin:'0 5px'}}></div>
+
+            <button onClick={handleLogout} className="btn btn-text text-red" title="Çıkış">
+                <LogOut size={20}/>
+            </button>
           </div>
         </div>
 
-        {/* CONTENT ROUTER */}
-        {view === 'settings' ? (
-          <SettingsView {...dashboardLogic} setView={setView} />
-        ) : view === 'history' ? (
-          <HistoryView {...dashboardLogic} setView={setView} />
-        ) : (
-          <DashboardView {...dashboardLogic} />
-        )}
+        {/* ROUTING ALANI */}
+        <Routes>
+          <Route path="/" element={<DashboardView {...dashboardLogic} />} />
+          <Route path="/history" element={<HistoryView {...dashboardLogic} />} />
+          <Route path="/settings" element={<SettingsView {...dashboardLogic} />} />
+          {/* Hatalı link gelirse ana sayfaya at */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
       </div>
     </div>
   );
